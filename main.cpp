@@ -18,7 +18,7 @@
 		std::ofstream fout("output.txt"); 	\
 		fout << "FAILURE: " << msg << "\n";	\
 		fout.close();						\
-		exit(135); 							\
+		exit(135);							\
 	}
 
 using matrix = std::vector<binvector>;
@@ -197,6 +197,8 @@ private:
 			upward_pass_non_rec(nd, R);
 		}
 		nd->A.resize(1LL << nd->k1);
+		nd->B.resize(1LL << nd->k1);
+		binvector a, b;
 		if (nd->k1 != 0) {
 			upward_pass(nd->left, R);
 			upward_pass(nd->right, R);
@@ -205,8 +207,8 @@ private:
 				for (int t = 0; t < nd->k1; t++) {
 					vv.set(vv.size() - t, (v >> (nd->k1 - t)) & 1);
 				}
-				binvector a = vv * nd->G_hat;
-				binvector b = vv * nd->G_tilda;
+				a = vv * nd->G_hat;
+				b = vv * nd->G_tilda;
 				nd->A[v] = nd->left->A[a] * nd->right->A[b];
 				for (std::size_t w = 1; w < (1ll << nd->k2); w++) {
 					for (int t = 0; t < nd->k2; t++) {
@@ -225,16 +227,24 @@ private:
 			downward_pass_non_rec(nd, L);
 			return;
 		}
+		binvector a, b;
 		if (nd->k1 == 0) {
-
+			binvector vv(nd->k2);
+			for (std::size_t w = 0; w < (1ll << nd->k2); w++) {
+				binvector vv(nd->k2, w);
+				a = vv * nd->G_hat;
+				b = vv * nd->G_tilda;
+				nd->left->B[a] = nd->right->A[b];
+				nd->right->B[b] = nd->left->A[a];
+			}
 		} else {
 			binvector vv(nd->k1 + nd->k2);
 			for (std::size_t v = 0; v < (1ll << nd->k1); v++) {
 				for (int t = 0; t < nd->k1; t++) {
 					vv.set(vv.size() - t, (v >> (nd->k1 - t)) & 1);
 				}
-				binvector a = vv * nd->G_hat;
-				binvector b = vv * nd->G_tilda;
+				a = vv * nd->G_hat;
+				b = vv * nd->G_tilda;
 				nd->left->B[a] = nd->B[v] * nd->right->A[b];
 				nd->right->B[b] = nd->B[v] * nd->left->A[a];
 				for (std::size_t w = 1; w < (1ll << nd->k2); w++) {
@@ -278,9 +288,6 @@ public:
 		}
 		minimal_span_form(ans);
 		return ans;
-	}
-
-	matrix Gs(int x, int y) const {
 	}
 
 public:
