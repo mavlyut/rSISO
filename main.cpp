@@ -148,14 +148,14 @@ public:
 private: // Sectionalization
 	class node {
 	protected:
-		node(int x, int y, int k1) : x(x), y(y), k1(k1), A(1 << k1), B(1 << k1) {}
+		node(int x, int y, int k1, int k2) : x(x), y(y), k1(k1), k2(k2), A(1 << k1), B(1 << k1) {}
 
 	public:
 		virtual bool is_leaf() const = 0;
 
 	public:
 		const int x, y;
-		const int k1;
+		const int k1, k2;
 		std::vector<double> A, B;
 
 	protected:
@@ -181,7 +181,7 @@ private: // Sectionalization
 	class leaf : public node {
 	public:
 		leaf(int x, int y, int k1, matrix const& Gp)
-			: node(x, y, k1)
+			: node(x, y, k1, Gp.size() - k1)
 			, A0(y - x, std::vector<double>(1 << k1, 0))
 			, A1(y - x, std::vector<double>(1 << k1, 0))
 			, Gp(Gp) {}
@@ -190,7 +190,6 @@ private: // Sectionalization
 			return true;
 		}
 
-		// TODO
 		binvector dot(binvector const& u, binvector const& v) const {
 			return combineAndMul(u, v, Gp);
 		}
@@ -205,7 +204,7 @@ private: // Sectionalization
 	class inner : public node {
 	public:
 		inner(int x, int y, int z, node* left, node* right, int k1, int k2, matrix const& G_hat, matrix const& G_tilda)
-			: node(x, y, k1), z(z), k2(k2), left(left), right(right), G_hat(G_hat), G_tilda(G_tilda) {}
+			: node(x, y, k1, k2), z(z), left(left), right(right), G_hat(G_hat), G_tilda(G_tilda) {}
 
 		bool is_leaf() const override {
 			return false;
@@ -217,7 +216,6 @@ private: // Sectionalization
 
 	public:
 		int z;
-		int k2;
 		node *left, *right;
 
 	private:
@@ -361,25 +359,24 @@ private:
 		downward_pass(nd->right, L);
 	}
 
-	// TODO: k2?
 	void upward_pass_non_rec(leaf* nd, std::vector<double> const& R) const {
 		for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
-			// binvector vv(nd->k1, v);
-			// binvector c = nd->dot(binvector(nd->k2), vv);
-			// nd->A[v] = F(c, R, nd->x, nd->y);
-			// for (std::size_t w = 1; w < (1 << nd->k2); w++) {
-			// 	binvector ww(nd->k2, w);
-			// 	c = nd->dot(ww, vv);
-			// 	double T = F(c, R, nd->x, nd->y);
-			// 	nd->A[v] += T;
-			// 	for (int i = 0; i < nd->y - nd->x; i++) {
-			// 		if (c[i]) {
-			// 			nd->A1[i][v] += T;
-			// 		} else {
-			// 			nd->A0[i][v] += T;
-			// 		}
-			// 	}
-			// }
+			binvector vv(nd->k1, v);
+			binvector c = nd->dot(binvector(nd->k2), vv);
+			nd->A[v] = F(c, R, nd->x, nd->y);
+			for (std::size_t w = 1; w < (1 << nd->k2); w++) {
+				binvector ww(nd->k2, w);
+				c = nd->dot(ww, vv);
+				double T = F(c, R, nd->x, nd->y);
+				nd->A[v] += T;
+				for (int i = 0; i < nd->y - nd->x; i++) {
+					if (c[i]) {
+						nd->A1[i][v] += T;
+					} else {
+						nd->A0[i][v] += T;
+					}
+				}
+			}
 		}
 	}
 
