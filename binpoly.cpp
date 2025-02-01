@@ -65,7 +65,15 @@ public:
         }
     }
 
-    int size() const {
+    binvector_ subvector(int x, int y) const {
+        binvector_ ans(y - x);
+        for (int i = 0; i < ans.size(); i++) {
+            ans.set(i, operator[](i + x));
+        }
+        return ans;
+    }
+
+    std::size_t size() const {
         return sz;
     }
 

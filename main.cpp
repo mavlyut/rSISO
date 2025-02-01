@@ -34,7 +34,7 @@ std::ostream& operator<<(std::ostream& out, std::vector<T> const& a) {
 	return out << '\n';
 }
 
-std::ostream& operator<<(std::ostream& out, std::vector<binvector> const& a) {
+std::ostream& operator<<(std::ostream& out, matrix const& a) {
 	for (binvector const& row : a) {
 			for (int i = 0; i < row.size(); i++) {
 			if (i != 0) {
@@ -124,6 +124,17 @@ std::vector<int> minimal_span_form(matrix& G) {
 	return gamma;
 }
 
+unsigned rg(matrix M) {
+	gauss(M);
+	return M.size();
+}
+
+bool lin_indep(matrix const& M, binvector const& a) {
+	matrix M_ext(M);
+	M_ext.push_back(a);
+	return rg(M_ext) == M_ext.size();
+}
+
 class RecursiveDecoder {
 public:
 	RecursiveDecoder(matrix const G) : _split(G[0].size(), std::vector(G[0].size(), -1)), G(G) {
@@ -131,21 +142,89 @@ public:
 		this->k = G.size();
 		this->n = G.front().size();
 		this->ZERO = binvector(n);
-
-		sectionalization();
+		this->root = sectionalization();
 	}
 
 private: // Sectionalization
-	struct node {
-		int x, y, z;
-		int k1, k2, k3;
-		node* left;
-		node* right;
-		matrix Gp, G_tilda, G_hat;
+	class node {
+	protected:
+		node(int x, int y, int k1) : x(x), y(y), k1(k1), A(1 << k1), B(1 << k1) {}
+
+	public:
+		virtual bool is_leaf() const = 0;
+
+	public:
+		const int x, y;
+		const int k1;
 		std::vector<double> A, B;
+
+	protected:
+		// (u v) * M
+		binvector combineAndMul(binvector const& u, binvector const& v, matrix const& M) const {
+			fail(u.size() + v.size() == M.size(), "combineAndMul: incompatible sizes");
+			binvector ans(M.front().size());
+			for (int i = 0; i < ans.size(); i++) {
+				bool val = false;
+				int t = 0;
+				for (int j = 0; j < u.size(); j++, t++) {
+					val ^= (u[j] & M[t][i]);
+				}
+				for (int j = 0; j < v.size(); j++, t++) {
+					val ^= (v[j] & M[t][i]);
+				}
+				ans.set(i, val);
+			}
+			return ans;
+		}
 	};
 
-	void sectionalization() {
+	class leaf : public node {
+	public:
+		leaf(int x, int y, int k1, matrix const& Gp)
+			: node(x, y, k1)
+			, A0(y - x, std::vector<double>(1 << k1, 0))
+			, A1(y - x, std::vector<double>(1 << k1, 0))
+			, Gp(Gp) {}
+
+		bool is_leaf() const override {
+			return true;
+		}
+
+		// TODO
+		binvector dot(binvector const& u, binvector const& v) const {
+			return combineAndMul(u, v, Gp);
+		}
+
+	public:
+		std::vector<std::vector<double>> A0, A1;
+
+	private:
+		matrix Gp;
+	};
+
+	class inner : public node {
+	public:
+		inner(int x, int y, int z, node* left, node* right, int k1, int k2, matrix const& G_hat, matrix const& G_tilda)
+			: node(x, y, k1), z(z), k2(k2), left(left), right(right), G_hat(G_hat), G_tilda(G_tilda) {}
+
+		bool is_leaf() const override {
+			return false;
+		}
+
+		std::pair<binvector, binvector> mapping(binvector const& u, binvector const& v) const {
+			return {combineAndMul(u, v, G_hat), combineAndMul(u, v, G_tilda)};
+		}
+
+	public:
+		int z;
+		int k2;
+		node *left, *right;
+
+	private:
+		matrix G_hat, G_tilda;
+	};
+
+	node* sectionalization() {
 		// std::vector<std::vector<int>> phi_u_c(n, std::vector<int>(n, 0));
 		// std::vector<std::vector<int>> phi_d_c(n, std::vector<int>(n, 0));
 		// std::vector<std::vector<int>> phi_u_l(n, std::vector<int>(n, 0));
@@ -156,10 +235,46 @@ private: // Sectionalization
 				_split[x][y] = (x + y) / 2;
 			}
 		}
+
+		return rec_build_section_tree(0, n).first;
 	}
 
-	int split(int x, int y) const {
-		return _split[x][y];
+	std::pair<node*, matrix> rec_build_section_tree(int x, int y) {
+		int z = _split[x][y];
+		if (z == -1) {
+			matrix Gs0, Gsl, Gsr, G1;
+			for (int i = 0; i < k; i++) {
+				binvector row = G[i];
+				binvector append = row.subvector(x, y);
+				if (row.subvector(0, x).isZero() && row.subvector(y, n).isZero()) {
+					if (row.subvector(x, z).isZero()) {
+						Gsr.push_back(append);
+					} else if (row.subvector(z, y).isZero()) {
+						Gsl.push_back(append);
+					} else {
+						Gs0.push_back(append);
+					}
+				} else {
+					G1.push_back(append);
+				}
+			}
+			matrix Gs;
+			for (binvector const& row : Gsl) {
+				Gs.push_back(row);
+			}
+			for (binvector const& row : Gsr) {
+				Gs.push_back(row);
+			}
+			for (binvector const& row : Gs0) {
+				Gs.push_back(row);
+			}
+			// return leaf(x, y, k1, Gp);
+		}
+		auto [left, Gs_xz] = rec_build_section_tree(x, z);
+		auto [right, Gs_zy] = rec_build_section_tree(z, y);
+
+
+		// return inner(x, y, z, left, right, k1, k2, Gp);
 	}
 
 public:
@@ -192,67 +307,51 @@ public:
 	}
 
 private:
-	void upward_pass(node* nd, std::vector<double> const& R) const {
-		if (nd->z == -1) {
-			upward_pass_non_rec(nd, R);
+	void upward_pass(node* rt, std::vector<double> const& R) const {
+		if (rt->is_leaf()) {
+			upward_pass_non_rec(reinterpret_cast<leaf*>(rt), R);
 		}
-		nd->A.resize(1LL << nd->k1);
-		nd->B.resize(1LL << nd->k1);
-		binvector a, b;
+		inner* nd = reinterpret_cast<inner*>(rt);
 		if (nd->k1 != 0) {
 			upward_pass(nd->left, R);
 			upward_pass(nd->right, R);
-			binvector vv(nd->k1 + nd->k2);
-			for (std::size_t v = 0; v < (1ll << nd->k1); v++) {
-				for (int t = 0; t < nd->k1; t++) {
-					vv.set(vv.size() - t, (v >> (nd->k1 - t)) & 1);
-				}
-				a = vv * nd->G_hat;
-				b = vv * nd->G_tilda;
+			binvector w_zero(nd->k2);
+			for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
+				binvector vv(nd->k1, v);
+				auto [a, b] = nd->mapping(w_zero, vv);
 				nd->A[v] = nd->left->A[a] * nd->right->A[b];
-				for (std::size_t w = 1; w < (1ll << nd->k2); w++) {
-					for (int t = 0; t < nd->k2; t++) {
-						vv.set(t, (w >> t) & 1);
-					}
-					a = vv * nd->G_hat;
-					b = vv * nd->G_tilda;
+				for (std::size_t w = 1; w < (1ull << nd->k2); w++) {
+					binvector ww(nd->k2, w);
+					auto [a, b] = nd->mapping(ww, vv);
 					nd->A[v] += nd->left->A[a] * nd->right->A[b];
 				}
 			}
 		}
 	}
 
-	void downward_pass(node* nd, std::vector<double>& L) const {
-		if (nd->z == -1) {
-			downward_pass_non_rec(nd, L);
+	void downward_pass(node* rt, std::vector<double>& L) const {
+		if (rt->is_leaf()) {
+			downward_pass_non_rec(reinterpret_cast<leaf*>(rt), L);
 			return;
 		}
-		binvector a, b;
+		inner* nd = reinterpret_cast<inner*>(rt);
+		binvector w_zero(nd->k1);
 		if (nd->k1 == 0) {
-			binvector vv(nd->k2);
-			for (std::size_t w = 0; w < (1ll << nd->k2); w++) {
+			for (std::size_t w = 0; w < (1ull << nd->k2); w++) {
 				binvector vv(nd->k2, w);
-				a = vv * nd->G_hat;
-				b = vv * nd->G_tilda;
+				auto [a, b] = nd->mapping(w_zero, vv);
 				nd->left->B[a] = nd->right->A[b];
 				nd->right->B[b] = nd->left->A[a];
 			}
 		} else {
-			binvector vv(nd->k1 + nd->k2);
-			for (std::size_t v = 0; v < (1ll << nd->k1); v++) {
-				for (int t = 0; t < nd->k1; t++) {
-					vv.set(vv.size() - t, (v >> (nd->k1 - t)) & 1);
-				}
-				a = vv * nd->G_hat;
-				b = vv * nd->G_tilda;
+			for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
+				binvector vv(nd->k1, v);
+				auto [a, b] = nd->mapping(w_zero, vv);
 				nd->left->B[a] = nd->B[v] * nd->right->A[b];
 				nd->right->B[b] = nd->B[v] * nd->left->A[a];
-				for (std::size_t w = 1; w < (1ll << nd->k2); w++) {
-					for (int t = 0; t < nd->k2; t++) {
-						vv.set(t, (w >> t) & 1);
-					}
-					a = vv * nd->G_hat;
-					b = vv * nd->G_tilda;
+				for (std::size_t w = 1; w < (1ull << nd->k2); w++) {
+					binvector ww(nd->k2, w);
+					auto [a, b] = nd->mapping(ww, vv);
 					nd->left->B[a] += nd->B[v] * nd->right->A[b];
 					nd->right->B[b] += nd->B[v] * nd->left->A[a];
 				}
@@ -262,32 +361,40 @@ private:
 		downward_pass(nd->right, L);
 	}
 
-	void upward_pass_non_rec(node* nd, std::vector<double> const& R) const {
-
+	// TODO: k2?
+	void upward_pass_non_rec(leaf* nd, std::vector<double> const& R) const {
+		for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
+			// binvector vv(nd->k1, v);
+			// binvector c = nd->dot(binvector(nd->k2), vv);
+			// nd->A[v] = F(c, R, nd->x, nd->y);
+			// for (std::size_t w = 1; w < (1 << nd->k2); w++) {
+			// 	binvector ww(nd->k2, w);
+			// 	c = nd->dot(ww, vv);
+			// 	double T = F(c, R, nd->x, nd->y);
+			// 	nd->A[v] += T;
+			// 	for (int i = 0; i < nd->y - nd->x; i++) {
+			// 		if (c[i]) {
+			// 			nd->A1[i][v] += T;
+			// 		} else {
+			// 			nd->A0[i][v] += T;
+			// 		}
+			// 	}
+			// }
+		}
 	}
 
-	void downward_pass_non_rec(node* nd, std::vector<double>& L) const {
-
-	}
-
-public:
-	matrix Gp(int x, int y) const {
-		matrix ans(dim(), binvector(y - x));
-		for (int i = 0; i < dim(); i++) {
-			for (int j = x, jj = 0; j < y; j++, jj++) {
-				ans[i].set(jj, G[i][j]);
+	void downward_pass_non_rec(leaf* nd, std::vector<double>& L) const {
+		int sz = nd->y - nd->x;
+		std::vector<double> P0(sz, 0), P1(sz, 0);
+		for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
+			for (int i = 0; i < sz; i++) {
+				P0[i] += nd->A0[i][v] * nd->B[v];
+				P1[i] += nd->A1[i][v] * nd->B[v];
 			}
 		}
-		int i = 0;
-		while (i < ans.size()) {
-			if (ans[i].isZero()) {
-				ans.erase(ans.begin() + i);
-			} else {
-				i++;
-			}
+		for (int i = nd->x, j = 0; j < sz; i++, j++) {
+			L[i] = log(P0[j] / P1[j]);
 		}
-		minimal_span_form(ans);
-		return ans;
 	}
 
 public:
@@ -315,9 +422,15 @@ private:
 	std::vector<std::vector<int>> _split;
 	std::vector<binvector> G;
 	node* root;
-
-private:
 	binvector ZERO;
+
+	double F(binvector c, std::vector<double> const& R, int x, int y) const {
+		double ans = 0;
+		for (int i = x, j = 0; i < y; i++, j++) {
+			ans += (R[i] - (c[j] ? -1 : 1)) * (R[i] - (c[j] ? -1 : 1));
+		}
+		return ans;
+	}
 };
 
 
@@ -339,9 +452,6 @@ int main() {
 	fin >> G;
 
 	RecursiveDecoder coder(G);
-	std::cout << coder.Gp(4, 8);
-
-	return 0;
 
 	std::string command;
 	bool skip = false;

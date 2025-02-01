@@ -34,3 +34,5 @@
 # User's
 *.pdf
 *.txt
+output
+RM_generator.cpp
