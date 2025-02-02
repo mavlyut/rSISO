@@ -66,7 +66,7 @@ public:
     }
 
     binvector_ subvector(int x, int y) const {
-        binvector_ ans(y - x);
+        binvector_ ans(std::max(0, y - x));
         for (int i = 0; i < ans.size(); i++) {
             ans.set(i, operator[](i + x));
         }

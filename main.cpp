@@ -65,6 +65,7 @@ binvector operator*(binvector const& x, matrix const& A) {
 		}
 		ans.set(i, val);
 	}
+	return ans;
 }
 
 std::vector<int> gauss(matrix& a) {
@@ -105,6 +106,17 @@ std::vector<int> gauss(matrix& a) {
 	return gamma;
 }
 
+void full_gauss(matrix& a) {
+	std::vector<int> gamma = gauss(a);
+	for (int i = gamma.size() - 1; i >= 0; i--) {
+		for (int j = 0; j < i; j++) {
+			if (a[j][gamma[i]]) {
+				a[j] = a[j] + a[i];
+			}
+		}
+	}
+}
+
 std::vector<int> minimal_span_form(matrix& G) {
 	std::vector<int> gamma = gauss(G);
 	int n = G[0].size(), k = G.size();
@@ -135,28 +147,46 @@ bool lin_indep(matrix const& M, binvector const& a) {
 	return rg(M_ext) == M_ext.size();
 }
 
+matrix operator*(matrix const& A, matrix const& B) {
+	std::cout << "mul:\n" << A << "*\n" << B << "\n";
+	fail(A.front().size() == B.size(), "mulMatrix: incompatible sizes");
+	matrix C(A.size(), binvector(B.front().size()));
+	for (int i = 0; i < C.size(); i++) {
+		for (int j = 0; j < C.front().size(); j++) {
+			for (int k = 0; k < B.size(); k++) {
+				C[i].set(j, C[i][j] ^ (A[i][k] & B[k][j]));
+			}
+		}
+	}
+	return C;
+}
+
 class RecursiveDecoder {
 public:
-	RecursiveDecoder(matrix const G) : _split(G[0].size(), std::vector(G[0].size(), -1)), G(G) {
-		minimal_span_form(this->G);
-		this->k = G.size();
-		this->n = G.front().size();
-		this->ZERO = binvector(n);
-		this->root = sectionalization();
+	RecursiveDecoder(matrix const& _G) : G(_G) {
+		minimal_span_form(G);
+		std::cout << "MSF:\n" << G << "\n";
+		k = G.size();
+		n = G.front().size();
+		ZERO = binvector(n);
+		_split = std::vector(n + 1, std::vector(n + 1, -1));
+		root = sectionalization();
 	}
 
 private: // Sectionalization
 	class node {
 	protected:
-		node(int x, int y, int k1, int k2) : x(x), y(y), k1(k1), k2(k2), A(1 << k1), B(1 << k1) {}
+		node(int x, int y, int k1, int k2, int k3, matrix const& Gp)
+			: x(x), y(y), k1(k1), k2(k2), k3(k3), A(1 << k1), B(1 << k1), Gp(Gp) {}
 
 	public:
 		virtual bool is_leaf() const = 0;
 
 	public:
 		const int x, y;
-		const int k1, k2;
+		const int k1, k2, k3;
 		std::vector<double> A, B;
+		matrix Gp;
 
 	protected:
 		// (u v) * M
@@ -181,10 +211,9 @@ private: // Sectionalization
 	class leaf : public node {
 	public:
 		leaf(int x, int y, int k1, matrix const& Gp)
-			: node(x, y, k1, Gp.size() - k1)
+			: node(x, y, k1, Gp.size() - k1, Gp.size() - k1, Gp)
 			, A0(y - x, std::vector<double>(1 << k1, 0))
-			, A1(y - x, std::vector<double>(1 << k1, 0))
-			, Gp(Gp) {}
+			, A1(y - x, std::vector<double>(1 << k1, 0)) {}
 
 		bool is_leaf() const override {
 			return true;
@@ -196,15 +225,12 @@ private: // Sectionalization
 
 	public:
 		std::vector<std::vector<double>> A0, A1;
-
-	private:
-		matrix Gp;
 	};
 
 	class inner : public node {
 	public:
-		inner(int x, int y, int z, node* left, node* right, int k1, int k2, matrix const& G_hat, matrix const& G_tilda)
-			: node(x, y, k1, k2), z(z), left(left), right(right), G_hat(G_hat), G_tilda(G_tilda) {}
+		inner(int x, int y, int z, node* left, node* right, int k1, int k2, int k3, matrix const& G_hat, matrix const& G_tilda, matrix const& Gp)
+			: node(x, y, k1, k2, k3, Gp), z(z), left(left), right(right), G_hat(G_hat), G_tilda(G_tilda) {}
 
 		bool is_leaf() const override {
 			return false;
@@ -228,63 +254,137 @@ private: // Sectionalization
 		// std::vector<std::vector<int>> phi_u_l(n, std::vector<int>(n, 0));
 		// std::vector<std::vector<int>> phi_d_l(n, std::vector<int>(n, 0));
 
-		for (int x = 0; x < n; x++) {
-			for (int y = x + 1; y < n; y++) {
-				_split[x][y] = (x + y) / 2;
-			}
-		}
+		// for (int x = 0; x <= n; x++) {
+		// 	for (int y = x + 1; y <= n; y++) {
+		// 		_split[x][y] = (x + y) / 2;
+		// 	}
+		// }
 
-		return rec_build_section_tree(0, n).first;
+		_split[0][8] = 4;
+		_split[0][4] = 2;
+		_split[4][8] = 6;
+
+		return rec_build_section_tree(0, n);
 	}
 
-	std::pair<node*, matrix> rec_build_section_tree(int x, int y) {
+	node* rec_build_section_tree(int x, int y) {
+		if (x >= y) {
+			return nullptr;
+		}
 		int z = _split[x][y];
 		if (z == -1) {
-			matrix Gs0, Gsl, Gsr, G1;
+			matrix Gp, Gs, Gl;
 			for (int i = 0; i < k; i++) {
 				binvector row = G[i];
 				binvector append = row.subvector(x, y);
 				if (row.subvector(0, x).isZero() && row.subvector(y, n).isZero()) {
-					if (row.subvector(x, z).isZero()) {
-						Gsr.push_back(append);
-					} else if (row.subvector(z, y).isZero()) {
-						Gsl.push_back(append);
-					} else {
-						Gs0.push_back(append);
-					}
+					Gs.push_back(append);
+					Gp.push_back(append);
 				} else {
-					G1.push_back(append);
+					Gl.push_back(append);
 				}
 			}
-			matrix Gs;
-			for (binvector const& row : Gsl) {
-				Gs.push_back(row);
+			int k1 = 0;
+			for (binvector const& row : Gl) {
+				if (lin_indep(Gp, row)) {
+					Gp.push_back(row);
+					k1++;
+				}
 			}
-			for (binvector const& row : Gsr) {
-				Gs.push_back(row);
-			}
-			for (binvector const& row : Gs0) {
-				Gs.push_back(row);
-			}
-			// return leaf(x, y, k1, Gp);
+			std::cout << "leaf: " << x << " " << y << "\n" << Gp << "\n";
+			return new leaf(x, y, k1, Gp);
 		}
-		auto [left, Gs_xz] = rec_build_section_tree(x, z);
-		auto [right, Gs_zy] = rec_build_section_tree(z, y);
 
+		matrix Gp, _G0, _G1; int k3 = 0;
+		for (int i = 0; i < k; i++) {
+			binvector row = G[i];
+			binvector append = row.subvector(x, y);
+			if (row.subvector(0, x).isZero() && row.subvector(y, n).isZero()) {
+				if (row.subvector(x, z).isZero() || row.subvector(z, y).isZero()) {
+					Gp.push_back(append);
+				} else {
+					_G0.push_back(append);
+				}
+				k3++;
+			} else {
+				_G1.push_back(append);
+			}
+		}
 
-		// return inner(x, y, z, left, right, k1, k2, Gp);
+		matrix G_0, G_1;
+		int k1 = 0, k2 = 0;
+		for (binvector const& row : _G0) {
+			if (lin_indep(Gp, row)) {
+				Gp.push_back(row);
+				G_0.push_back(row.subvector(0, z - x));
+				G_1.push_back(row.subvector(z - x, y - x));
+				k2++;
+			}
+		}
+		for (binvector const& row : _G1) {
+			if (lin_indep(Gp, row)) {
+				Gp.push_back(row);
+				G_0.push_back(row.subvector(0, z - x));
+				G_1.push_back(row.subvector(z - x, y - x));
+				k1++;
+			}
+		}
+
+		node* left = rec_build_section_tree(x, z);
+		node* right = rec_build_section_tree(z, y);
+
+		std::cout << "inner: " << x << " " << y << "\n" << Gp << "\n" << G_0 << "\n" << G_1 << "\n";
+		
+		matrix G_hat(k1 + k2, binvector(left->k1));
+		matrix G_tilda(k1 + k2, binvector(right->k1));
+		{
+			matrix G_hat_ext(z - x, binvector(left->k1 + left->k3 + k1 + k2));
+			for (int i = 0; i < z - x; i++) {
+				int j = 0;
+				for (int t = 0; t < left->Gp.size(); t++, j++) {
+					G_hat_ext[i].set(j, left->Gp[t][i]);
+				}
+				for (int t = 0; t < G_0.size(); t++, j++) {
+					G_hat_ext[i].set(j, G_0[t][i]);
+				}
+			}
+			full_gauss(G_hat_ext);
+			std::cout << "G_hat_ext\n" << G_hat_ext << "\n";
+			for (int i = 0; i < k1 + k2; i++) {
+				for (int j = 0; j < left->k1; j++) {
+					G_hat[i].set(left->k1 - j - 1, G_hat_ext[G_hat_ext.size() - j - 1][i + left->k1 + left->k3]);
+				}
+			}
+		}
+		{
+			matrix G_tilda_ext(z - x, binvector(right->k1 + right->k3 + k1 + k2));
+			for (int i = 0; i < z - x; i++) {
+				int j = 0;
+				for (int t = 0; t < right->Gp.size(); t++, j++) {
+					G_tilda_ext[i].set(j, right->Gp[t][i]);
+				}
+				for (int t = 0; t < G_1.size(); t++, j++) {
+					G_tilda_ext[i].set(j, G_1[t][i]);
+				}
+			}
+			full_gauss(G_tilda_ext);
+			std::cout << "G_tilda_ext\n" << G_tilda_ext << "\n";
+			for (int i = 0; i < k1 + k2; i++) {
+				for (int j = 0; j < right->k1; j++) {
+					G_tilda[i].set(right->k1 - j - 1, G_tilda_ext[G_tilda_ext.size() - j - 1][i + right->k1 + right->k3]);
+				}
+			}
+		}
+
+		std::cout << G_hat << "\n" << G_tilda << "\n";
+
+		return new inner(x, y, z, left, right, k1, k2, k3, G_hat, G_tilda, Gp);
 	}
 
 public:
 	binvector encode(binvector const& c) const {
 		fail(c.size() == k, "encode: size is incorrect");
-		binvector ans(n);
-		for (int i = 0; i < n; i++) {
-			for (int j = 0; j < k; j++) {
-				ans.set(i, ans[i] ^ (c[j] & G[j][i]));
-			}
-		}
-		return ans;
+		return c * G;
 	}
 
 public:
@@ -430,7 +530,6 @@ private:
 	}
 };
 
-
 int main() {
 	srand(time(NULL));
 	std::mt19937 gen(time(0));
@@ -483,7 +582,6 @@ int main() {
 			fail(max_error >= 0, "simulate: max_err_cnt must be non-negative");
 
 			double sigma = sqrt(0.5 * pow(10.0, -snr / 10.0) * coder.length() / coder.dim());
-			std::cout << sigma << '\n';
 			std::normal_distribution norm(0.0, sigma);
 			int errr = 0, sim_cnt = 0;
 			while (errr < max_error && sim_cnt < iter_cnt) {
@@ -507,4 +605,6 @@ int main() {
 		}
 		fout << std::endl;
 	}
+
+	std::cout << "FINISH\n";
 }
