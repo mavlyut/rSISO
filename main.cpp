@@ -69,25 +69,25 @@ binvector operator*(binvector const& x, matrix const& A) {
 }
 
 std::vector<int> gauss(matrix& a) {
-    int k = a.size();
-    int n = a[0].size();
-    int last_c = 0;
+	int k = a.size();
+	int n = a[0].size();
+	int last_c = 0;
 	std::vector<int> gamma(k);
-    for (int i = 0; i < k; ++i) {
-        while (last_c < n) {
-            bool fl = false;
-            for (int j = i; j < k; ++j) {
-                if (a[j][last_c] == 1) {
-                    fl = true;
-                    std::swap(a[i], a[j]);
-                    break;
-                }
-            }
-            if (fl) {
-                break;
-            }
-            last_c++;
-        }
+	for (int i = 0; i < k; ++i) {
+		while (last_c < n) {
+			bool fl = false;
+			for (int j = i; j < k; ++j) {
+				if (a[j][last_c] == 1) {
+					fl = true;
+					std::swap(a[i], a[j]);
+					break;
+				}
+			}
+			if (fl) {
+				break;
+			}
+			last_c++;
+		}
 		if (last_c == n) {
 			for (int ii = i; ii < k; ii++) {
 				a.pop_back();
@@ -95,14 +95,14 @@ std::vector<int> gauss(matrix& a) {
 			break;
 		}
 		gamma[i] = last_c;
-        for (int j = i + 1; j < k; ++j) {
-            if (a[j][last_c] == 1) {
-                for (int t = 0; t < n; ++t) {
-                    a[j].set(t, a[j][t] ^ a[i][t]);
-                }
-            }
-        }
-    }
+		for (int j = i + 1; j < k; ++j) {
+			if (a[j][last_c] == 1) {
+				for (int t = 0; t < n; ++t) {
+					a[j].set(t, a[j][t] ^ a[i][t]);
+				}
+			}
+		}
+	}
 	return gamma;
 }
 
