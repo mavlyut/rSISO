@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include "binpoly.cpp"
+#include <cmath>
 #include <ctime>
 #include <fstream>
 #include <functional>
@@ -21,7 +22,10 @@
 		throw 2;							\
 	}
 
-#define LOG
+// #define LOG
+#define EPS 1e-10
+static const double INF = INFINITY;
+static constexpr double COEF = M_2_SQRTPI * M_SQRT1_2 / 2;
 
 using matrix = std::vector<binvector>;
 
@@ -33,7 +37,18 @@ std::ostream& operator<<(std::ostream& out, std::vector<T> const& a) {
 		}
 		out << a[i];
 	}
-	return out << '\n';
+	return out;
+}
+
+template <typename T>
+std::ostream& operator<<(std::ostream& out, std::vector<std::vector<T>> const& a) {
+	for (int i = 0; i < a.size(); i++) {
+		if (i != 0) {
+			out << "\n\t";
+		}
+		out << a[i];
+	}
+	return out;
 }
 
 std::ostream& operator<<(std::ostream& out, matrix const& a) {
@@ -204,7 +219,7 @@ private: // Sectionalization
 		matrix Gp;
 
 	protected:
-		static constexpr double I = -1;
+		static constexpr double I = 0;
 
 		// (u v) * M
 		binvector combineAndMul(binvector const& u, binvector const& v, matrix const& M) const {
@@ -299,15 +314,11 @@ private: // Sectionalization
 		// std::vector<std::vector<int>> phi_u_l(n, std::vector<int>(n, 0));
 		// std::vector<std::vector<int>> phi_d_l(n, std::vector<int>(n, 0));
 
-		// for (int x = 0; x <= n; x++) {
-		// 	for (int y = x + 1; y <= n; y++) {
-		// 		_split[x][y] = (x + y) / 2;
-		// 	}
-		// }
-
-		_split[0][8] = 4;
-		// _split[0][4] = 2;
-		// _split[4][8] = 6;
+		for (int x = 0; x <= n; x++) {
+			for (int y = x + 2; y <= n; y++) {
+				_split[x][y] = (x + y) / 2;
+			}
+		}
 
 		return rec_build_section_tree(0, n);
 	}
@@ -478,12 +489,12 @@ private:
 		std::cout << "Gp:\n" << rt->Gp << "\n";
 		if (rt->is_leaf()) {
 			leaf* nd = reinterpret_cast<leaf*>(rt);
-			std::cout << "A/0: " << nd->A0 << "A/1: " << nd->A1
-					  << "\nA: " << nd->A << "B: " << nd->B << "\n";
+			std::cout << "A/0: " << nd->A0 << "\nA/1: " << nd->A1
+					  << "\nA: " << nd->A << "\nB: " << nd->B << "\n";
 			return;
 		}
 		inner* nd = reinterpret_cast<inner*>(rt);
-		std::cout << "A: " << nd->A << "B: " << nd->B << "\n";
+		std::cout << "A: " << nd->A << "\nB: " << nd->B << "\n";
 		printLog(nd->left);
 		printLog(nd->right);
 	}
@@ -500,9 +511,7 @@ private:
 			binvector w_zero(nd->k2);
 			for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
 				binvector vv(nd->k1, v);
-				auto [a, b] = nd->mapping(w_zero, vv);
-				nd->A[v] = nd->left->A[a] * nd->right->A[b];
-				for (std::size_t w = 1; w < (1ull << nd->k2); w++) {
+				for (std::size_t w = 0; w < (1ull << nd->k2); w++) {
 					binvector ww(nd->k2, w);
 					auto [a, b] = nd->mapping(ww, vv);
 					nd->A[v] += nd->left->A[a] * nd->right->A[b];
@@ -529,10 +538,7 @@ private:
 			binvector w_zero(nd->k2);
 			for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
 				binvector vv(nd->k1, v);
-				auto [a, b] = nd->mapping(w_zero, vv);
-				nd->left->B[a] = nd->B[v] * nd->right->A[b];
-				nd->right->B[b] = nd->B[v] * nd->left->A[a];
-				for (std::size_t w = 1; w < (1ull << nd->k2); w++) {
+				for (std::size_t w = 0; w < (1ull << nd->k2); w++) {
 					binvector ww(nd->k2, w);
 					auto [a, b] = nd->mapping(ww, vv);
 					nd->left->B[a] += nd->B[v] * nd->right->A[b];
@@ -547,15 +553,9 @@ private:
 	void upward_pass_non_rec(leaf* nd, std::vector<double> const& R) const {
 		for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
 			binvector vv(nd->k1, v);
-			binvector c = nd->dot(binvector(nd->k2), vv);
-			nd->A[v] = F(c, R, nd->x, nd->y);
-			for (int i = 0; i < nd->y - nd->x; i++) {
-				nd->A0[i][v] = 0;
-				nd->A1[i][v] = 0;
-			}
-			for (std::size_t w = 1; w < (1 << nd->k2); w++) {
+			for (std::size_t w = 0; w < (1 << nd->k2); w++) {
 				binvector ww(nd->k2, w);
-				c = nd->dot(ww, vv);
+				binvector c = nd->dot(ww, vv);
 				double T = F(c, R, nd->x, nd->y);
 				nd->A[v] += T;
 				for (int i = 0; i < nd->y - nd->x; i++) {
@@ -586,7 +586,15 @@ private:
 		#endif
 
 		for (int i = nd->x, j = 0; j < sz; i++, j++) {
-			L[i] = log(P0[j] / P1[j]);
+			if (P0[j] < EPS && P1[j] < EPS) {
+				L[i] = NAN;
+			} else if (P0[j] < EPS) {
+				L[i] = -INF;
+			} else if (P1[j] < EPS) {
+				L[i] = INF;
+			} else {
+				L[i] = log(P0[j] / P1[j]);
+			}
 		}
 	}
 
@@ -621,7 +629,7 @@ private:
 		for (int i = x, j = 0; i < y; i++, j++) {
 			ans += (R[i] - (c[j] ? -1 : 1)) * (R[i] - (c[j] ? -1 : 1));
 		}
-		return ans;
+		return exp(- ans / 2);
 	}
 };
 
@@ -669,7 +677,15 @@ int main() {
 			std::vector<double> y(coder.length());
 			fin >> y;
 			fout << coder.decode(y);
-		} else if (command == "DecodeSoft") {
+		} else if (command == "DecodeSO") {
+			std::vector<double> y(coder.length());
+			bool c;
+			for (int i = 0; i < y.size(); i++) {
+				fin >> c;
+				y[i] = (c ? -INF : INF);
+			}
+			fout << coder.decode_soft(y);
+		} else if (command == "DecodeSISO") {
 			std::vector<double> y(coder.length());
 			fin >> y;
 			fout << coder.decode_soft(y);
@@ -691,13 +707,19 @@ int main() {
 				binvector enc = coder.encode(x);
 
 				std::vector<double> y(coder.length());
+				double coef = 2.0f / (sigma * sigma);
 				for (int t = 0; t < coder.length(); t++) {
-					y[t] = (enc[t] ? -1 : 1) + norm(gen);
+					y[t] = ((enc[t] ? -1 : 1) + norm(gen));
 				}
 				binvector dec = coder.decode(y);
 				errr += (dec != enc);
 				sim_cnt++;
 			}
+
+			#ifdef LOG
+			fout << errr << " / " << sim_cnt << " = ";
+			#endif
+
 			fout << (errr + 0.0) / sim_cnt;
 		} else {
 			fail(false, "main: incorrect command");
