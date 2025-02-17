@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include "binpoly.cpp"
+#include <chrono>
 #include <cmath>
 #include <ctime>
 #include <fstream>
@@ -23,9 +24,38 @@
 	}
 
 // #define LOG
+#define TIMELOG
+#define TEST
 #define EPS 1e-10
 static const double INF = INFINITY;
 static constexpr double COEF = M_2_SQRTPI * M_SQRT1_2 / 2;
+static std::mt19937 gen(time(0));
+std::ofstream _log_time("_log_time");
+std::ofstream _log_out("_log_out");
+
+typedef std::chrono::milliseconds ms;
+#define __time_measure_with_msg(msg, line)									\
+	auto start = std::chrono::system_clock::now();							\
+	line;																	\
+	auto end = std::chrono::system_clock::now(); 							\
+	auto time_in_ms = std::chrono::duration_cast<ms>(end - start).count();	\
+	_log_time << msg << ": "												\
+			  << (time_in_ms > 1000 ? (time_in_ms / 1000.0) : time_in_ms)	\
+			  << (time_in_ms > 1000 ? "s" : "ms") << std::endl;
+#define __time_measure(line) \
+	__time_measure_with_msg("Instruction: \"" #line "\"", line)
+
+#if defined(TIMELOG) && !defined(TEST)
+#define time_measure(line) { __time_measure(line) }
+#else
+#define time_measure(line) line
+#endif
+
+#if defined(LOG) && !defined(TEST)
+#define __log(msg) _log_out << msg;
+#else
+#define __log(msg)
+#endif
 
 using matrix = std::vector<binvector>;
 
@@ -89,7 +119,7 @@ std::vector<int> gauss(matrix& a) {
 	int k = a.size();
 	int n = a[0].size();
 	int last_c = 0;
-	std::vector<int> gamma(k);
+	std::vector<int> gamma;
 	for (int i = 0; i < k; ++i) {
 		while (last_c < n) {
 			bool fl = false;
@@ -111,7 +141,7 @@ std::vector<int> gauss(matrix& a) {
 			}
 			break;
 		}
-		gamma[i] = last_c;
+		gamma.push_back(last_c);
 		for (int j = i + 1; j < k; ++j) {
 			if (a[j][last_c] == 1) {
 				for (int t = 0; t < n; ++t) {
@@ -119,6 +149,7 @@ std::vector<int> gauss(matrix& a) {
 				}
 			}
 		}
+		last_c++;
 	}
 	return gamma;
 }
@@ -181,16 +212,14 @@ matrix operator*(matrix const& A, matrix const& B) {
 class RecursiveDecoder {
 public:
 	RecursiveDecoder(matrix const& _G) : G(_G) {
-		minimal_span_form(G);
+		time_measure(minimal_span_form(G));
 
-		#ifdef LOG
-		std::cout << "MSF:\n" << G << "\n";
-		#endif
-
+		__log("MSF:\n" << G << "\n")
+		
 		k = G.size();
 		n = G.front().size();
 		_split = std::vector(n + 1, std::vector(n + 1, -1));
-		root = sectionalization();
+		time_measure(root = sectionalization());
 	}
 
 private: // Sectionalization
@@ -309,24 +338,88 @@ private: // Sectionalization
 	};
 
 	node* sectionalization() {
-		// std::vector<std::vector<int>> phi_u_c(n, std::vector<int>(n, 0));
-		// std::vector<std::vector<int>> phi_d_c(n, std::vector<int>(n, 0));
-		// std::vector<std::vector<int>> phi_u_l(n, std::vector<int>(n, 0));
-		// std::vector<std::vector<int>> phi_d_l(n, std::vector<int>(n, 0));
+		std::vector<std::vector<int>> _Gp_size(n + 1, std::vector<int>(n + 1, 0));
+		std::vector<std::vector<int>> _Gs_size(n + 1, std::vector<int>(n + 1, 0));
+		std::vector<std::vector<std::vector<std::size_t>>> phi_u_c(n + 1, std::vector<std::vector<std::size_t>>(n + 1, std::vector<std::size_t>(n + 1, 0)));
+		std::vector<std::vector<std::vector<std::size_t>>> phi_d_c(n + 1, std::vector<std::vector<std::size_t>>(n + 1, std::vector<std::size_t>(n + 1, 0)));
+		std::vector<std::vector<std::size_t>> phi_u_l(n + 1, std::vector<std::size_t>(n + 1, 0));
+		std::vector<std::vector<std::size_t>> phi_d_l(n + 1, std::vector<std::size_t>(n + 1, 0));
+		std::vector<std::vector<std::size_t>> phi(n + 1, std::vector<std::size_t>(n + 1, -1));
 
 		for (int x = 0; x <= n; x++) {
-			for (int y = x + 2; y <= n; y++) {
-				_split[x][y] = (x + y) / 2;
+			for (int y = x + 1; y <= n; y++) {
+				matrix Gp;
+				int k3 = 0;
+				for (binvector const& row : G) {
+					Gp.push_back(row.subvector(x, y));
+					if (row.subvector(0, x).isZero() && row.subvector(y, n).isZero()) {
+						k3++;
+					}
+				}
+				gauss(Gp);
+				_Gp_size[x][y] = Gp.size();
+				_Gs_size[x][y] = k3;
 			}
 		}
+
+		for (int x = 0; x <= n; x++) {
+			for (int y = x + 1; y <= n; y++) {
+				phi_u_l[x][y] = (1ull << _Gp_size[x][y]) * (y - x - 1);
+				phi_d_l[x][y] = ((1ull << (_Gp_size[x][y] - _Gs_size[x][y] + 1)) + 1) * (y - x);
+				for (int z = x + 1; z < y - 1; z++) {
+					int k1_k2 = _Gp_size[x][y] - _Gs_size[x][z] - _Gs_size[z][y];
+					phi_u_c[x][y][z] = (1ull << k1_k2);
+					phi_d_c[x][y][z] = (1ull << (k1_k2 + 1));
+				}
+			}
+		}
+
+		std::function<int(int, int)> get_phi = [&](int x, int y) -> int {
+			if (phi[x][y] == -1) {
+				std::size_t min_score = phi_u_l[x][y] + phi_d_l[x][y], ind_min = -1;
+				for (int z = x + 1; z < y - 1; z++) {
+					std::size_t score = phi_u_c[x][y][z] + phi_d_c[x][y][z] + get_phi(x, z) + get_phi(z, y);
+					if (score < min_score) {
+						min_score = score;
+						ind_min = z;
+					}
+				}
+				_split[x][y] = ind_min;
+				phi[x][y] = min_score;
+			}
+			return phi[x][y];
+		};
+		for (int x = 0; x <= n; x++) {
+			for (int y = x + 1; y <= n; y++) {
+				get_phi(x, y);
+			}
+		}
+
+		__log("Gp_sz:  " << _Gp_size << "\nGs_sz:  " << _Gs_size << "\n");
+		__log("split: " << _split << "\n");
+
+		std::vector<int> sections = {0, n};
+		std::function<void(int, int)> rec_log = [&](int x, int y) {
+			int z = _split[x][y];
+
+			__log("[" << x << ";" << y << ") at " << z << "\n");
+
+			if (z == -1) {
+				return;
+			}
+			sections.push_back(z);
+			rec_log(x, z);
+			rec_log(z, y);
+		};
+		rec_log(0, n);
+		std::sort(sections.begin(), sections.end());
+		std::cout << sections << "\n\n";
 
 		return rec_build_section_tree(0, n);
 	}
 
 	node* rec_build_section_tree(int x, int y) {
-		if (x >= y) {
-			return nullptr;
-		}
+		fail(0 <= x && x < y && y <= n, "rec_build: incorrect bounds");
 		int z = _split[x][y];
 		if (z == -1) {
 			matrix Gp, Gs, Gl;
@@ -348,9 +441,7 @@ private: // Sectionalization
 				}
 			}
 
-			#ifdef LOG
-			std::cout << "leaf: " << x << " " << y << "\nGp:\n" << Gp << "\n";
-			#endif
+			__log("leaf: " << x << " " << y << "\nGp:\n" << Gp << "\n");
 
 			return new leaf(x, y, k1, Gp);
 		}
@@ -390,12 +481,10 @@ private: // Sectionalization
 			}
 		}
 
+		__log("inner: " << x << " " << y << "\nGp:\n" << Gp << "\nG_0:\n" << G_0 << "\nG_1:\n" << G_1 << "\n");
+
 		node* left = rec_build_section_tree(x, z);
 		node* right = rec_build_section_tree(z, y);
-
-		#ifdef LOG
-		std::cout << "inner: " << x << " " << y << "\nGp:\n" << Gp << "\nG_0:\n" << G_0 << "\nG_1:\n" << G_1 << "\n";
-		#endif
 
 		matrix G_hat(k1 + k2, binvector(left->k1));
 		matrix G_tilda(k1 + k2, binvector(right->k1));
@@ -412,9 +501,7 @@ private: // Sectionalization
 			}
 			full_gauss(G_hat_ext);
 
-			#ifdef LOG
-			std::cout << "G_hat_ext:\n" << G_hat_ext << "\n";
-			#endif
+			__log("G_hat_ext:\n" << G_hat_ext << "\n");
 
 			for (int i = 0; i < k1 + k2; i++) {
 				for (int j = 0; j < left->k1; j++) {
@@ -423,8 +510,8 @@ private: // Sectionalization
 			}
 		}
 		{
-			matrix G_tilda_ext(z - x, binvector(right->k1 + right->k3 + k1 + k2));
-			for (int i = 0; i < z - x; i++) {
+			matrix G_tilda_ext(y - z, binvector(right->k1 + right->k3 + k1 + k2));
+			for (int i = 0; i < y - z; i++) {
 				int j = 0;
 				for (int t = 0; t < right->Gp.size(); t++, j++) {
 					G_tilda_ext[i].set(j, right->Gp[t][i]);
@@ -433,11 +520,12 @@ private: // Sectionalization
 					G_tilda_ext[i].set(j, G_1[t][i]);
 				}
 			}
+			
+			__log("G_tilda_ext (before Gauss):\n" << G_tilda_ext << "\n");
+
 			full_gauss(G_tilda_ext);
 
-			#ifdef LOG
-			std::cout << "G_tilda_ext:\n" << G_tilda_ext << "\n";
-			#endif
+			__log("G_tilda_ext:\n" << G_tilda_ext << "\n");
 
 			for (int i = 0; i < k1 + k2; i++) {
 				for (int j = 0; j < right->k1; j++) {
@@ -446,9 +534,7 @@ private: // Sectionalization
 			}
 		}
 
-		#ifdef LOG
-		std::cout << "G_hat:\n" << G_hat << "\nG_tilda:\n" << G_tilda << "\n";
-		#endif
+		__log("G_hat:\n" << G_hat << "\nG_tilda:\n" << G_tilda << "\n");
 
 		return new inner(x, y, z, left, right, k1, k2, k3, G_hat, G_tilda, Gp);
 	}
@@ -463,12 +549,10 @@ public:
 	std::vector<double> decode_soft(std::vector<double> const& y) const {
 		root->clear();
 		std::vector<double> L(length(), 0);
-		upward_pass(root, y);
-		downward_pass(root, L);
+		time_measure(upward_pass(root, y));
+		time_measure(downward_pass(root, L));
 
-		#ifdef LOG
 		printLog(root);
-		#endif
 
 		return L;
 	}
@@ -484,17 +568,17 @@ public:
 
 private:
 	void printLog(node* rt) const {
-		std::cout << "[" << rt->x << ", " << rt->y << ")\n";
-		std::cout << "k = " << rt->k1 << " " << rt->k2 << " " << rt->k3 << "\n";
-		std::cout << "Gp:\n" << rt->Gp << "\n";
+		__log("[" << rt->x << ", " << rt->y << ")\n");
+		__log("k = " << rt->k1 << " " << rt->k2 << " " << rt->k3 << "\n");
+		__log("Gp:\n" << rt->Gp << "\n");
 		if (rt->is_leaf()) {
 			leaf* nd = reinterpret_cast<leaf*>(rt);
-			std::cout << "A/0: " << nd->A0 << "\nA/1: " << nd->A1
-					  << "\nA: " << nd->A << "\nB: " << nd->B << "\n";
+			__log("A/0: " << nd->A0 << "\nA/1: " << nd->A1
+				<< "\nA: " << nd->A << "\nB: " << nd->B << "\n");
 			return;
 		}
 		inner* nd = reinterpret_cast<inner*>(rt);
-		std::cout << "A: " << nd->A << "\nB: " << nd->B << "\n";
+		__log("A: " << nd->A << "\nB: " << nd->B << "\n");
 		printLog(nd->left);
 		printLog(nd->right);
 	}
@@ -579,11 +663,7 @@ private:
 			}
 		}
 
-		#ifdef LOG
-		for (int i = 0, j = nd->x; i < sz; i++, j++) {
-			std::cout << j << " " << P0[i] << " " << P1[i] << "\n";
-		}
-		#endif
+		__log("P0 " << P0 << "\nP1 " << P1 << "\n");
 
 		for (int i = nd->x, j = 0; j < sz; i++, j++) {
 			if (P0[j] < EPS && P1[j] < EPS) {
@@ -596,6 +676,30 @@ private:
 				L[i] = log(P0[j] / P1[j]);
 			}
 		}
+	}
+
+public:
+	friend std::pair<int, int> simulate(RecursiveDecoder const& coder, double snr, int iter_cnt, int max_error) {
+		double sigma = sqrt(0.5 * pow(10.0, -snr / 10.0) * coder.length() / coder.dim());
+		std::normal_distribution norm(0.0, sigma);
+		int errr = 0, sim_cnt = 0;
+		while (errr < max_error && sim_cnt < iter_cnt) {
+			binvector x(coder.dim());
+			for (int t = 0; t < coder.dim(); t++) {
+				x.set(t, rand() % 2);
+			}
+			binvector enc = coder.encode(x);
+
+			std::vector<double> y(coder.length());
+			double coef = 2.0f / (sigma * sigma);
+			for (int t = 0; t < coder.length(); t++) {
+				y[t] = ((enc[t] ? -1 : 1) + norm(gen));
+			}
+			binvector dec = coder.decode(y);
+			errr += (dec != enc);
+			sim_cnt++;
+		}
+		return {errr, sim_cnt};
 	}
 
 public:
@@ -635,7 +739,6 @@ private:
 
 int main() {
 	srand(time(NULL));
-	std::mt19937 gen(time(0));
 
 	std::ifstream fin("input.txt");
 #if defined(LOCAL)
@@ -643,7 +746,7 @@ int main() {
 #else
 	std::ofstream fout("output.txt");
 #endif
-	fout << std::scientific;
+	// fout << std::scientific;
 
 	int n, k;
 	fin >> n >> k;
@@ -696,31 +799,26 @@ int main() {
 			fail(iter_cnt > 0, "simulate: iter_cnt must be positive");
 			fail(max_error >= 0, "simulate: max_err_cnt must be non-negative");
 
-			double sigma = sqrt(0.5 * pow(10.0, -snr / 10.0) * coder.length() / coder.dim());
-			std::normal_distribution norm(0.0, sigma);
-			int errr = 0, sim_cnt = 0;
-			while (errr < max_error && sim_cnt < iter_cnt) {
-				binvector x(coder.dim());
-				for (int t = 0; t < coder.dim(); t++) {
-					x.set(t, rand() % 2);
-				}
-				binvector enc = coder.encode(x);
+			#ifdef TEST
+			auto start = std::chrono::system_clock::now();
+			#endif
 
-				std::vector<double> y(coder.length());
-				double coef = 2.0f / (sigma * sigma);
-				for (int t = 0; t < coder.length(); t++) {
-					y[t] = ((enc[t] ? -1 : 1) + norm(gen));
-				}
-				binvector dec = coder.decode(y);
-				errr += (dec != enc);
-				sim_cnt++;
-			}
+			auto [errr, sim_cnt] = simulate(coder, snr, iter_cnt, max_error);
+
+			#ifdef TEST
+			auto end = std::chrono::system_clock::now();
+			auto time_in_ms = std::chrono::duration_cast<ms>(end - start).count();
+			#endif
 
 			#ifdef LOG
 			fout << errr << " / " << sim_cnt << " = ";
 			#endif
 
 			fout << (errr + 0.0) / sim_cnt;
+
+			#if defined(TEST) && defined(TIMELOG)
+			fout << " " << time_in_ms;
+			#endif
 		} else {
 			fail(false, "main: incorrect command");
 		}

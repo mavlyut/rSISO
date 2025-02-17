@@ -36,3 +36,4 @@
 *.txt
 output
 RM_generator.cpp
+_log*
