@@ -213,7 +213,7 @@ matrix operator*(matrix const& A, matrix const& B) {
 
 class RecursiveDecoder {
 public:
-	RecursiveDecoder(matrix const& _G) : G(_G) {
+	RecursiveDecoder(matrix const& _G) : sigma2_2(0), G(_G) {
 		time_measure(minimal_span_form(G));
 
 		__log("MSF:\n" << G << "\n")
@@ -388,13 +388,6 @@ private: // Sectionalization
 		for (int x = 0; x <= n; x++) {
 			for (int y = x + 1; y <= n; y++) {
 				get_phi(x, y);
-			}
-		}
-
-		// TODO
-		for (int x = 0; x <= n; x++) {
-			for (int y = x + 2; y <= n; y++) {
-				_split[x][y] = (x + y) / 2;
 			}
 		}
 
@@ -644,19 +637,21 @@ private:
 	}
 
 	void upward_pass_non_rec(leaf* nd, std::vector<double> const& R) const {
-		for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
-			binvector vv(nd->k1, v);
-			for (std::size_t w = 0; w < (1 << nd->k2); w++) {
-				binvector ww(nd->k2, w);
-				binvector c = nd->dot(ww, vv);
-				double T = F(c, R, nd->x, nd->y);
-				nd->A[v] += T;
-				for (int i = 0; i < nd->y - nd->x; i++) {
-					if (c[i]) {
-						nd->A1[i][v] += T;
-					} else {
-						nd->A0[i][v] += T;
-					}
+		binvector v(nd->k1), c(nd->y - nd->x);
+		for (unsigned ind : GrayCode(nd->k1 + nd->k2)) {
+			if (ind != -1) {
+				if (ind >= nd->k2) {
+					v.change(ind - nd->k2);
+				}
+				c = c + nd->Gp[ind];
+			}
+			double T = F(c, R, nd->x, nd->y);
+			nd->A[v] += T;
+			for (int i = 0; i < nd->y - nd->x; i++) {
+				if (c[i]) {
+					nd->A1[i][v] += T;
+				} else {
+					nd->A0[i][v] += T;
 				}
 			}
 		}
@@ -688,8 +683,9 @@ private:
 	}
 
 public:
-	friend std::pair<int, int> simulate(RecursiveDecoder const& coder, double snr, int iter_cnt, int max_error) {
+	friend std::pair<int, int> simulate(RecursiveDecoder coder, double snr, int iter_cnt, int max_error) {
 		double sigma = sqrt(0.5 * pow(10.0, -snr / 10.0) * coder.length() / coder.dim());
+		coder.sigma2_2 = 2 * sigma * sigma;
 		std::normal_distribution norm(0.0, sigma);
 		int errr = 0, sim_cnt = 0;
 		while (errr < max_error && sim_cnt < iter_cnt) {
@@ -707,6 +703,7 @@ public:
 			errr += (dec != enc);
 			sim_cnt++;
 		}
+		coder.sigma2_2 = 0;
 		return {errr, sim_cnt};
 	}
 
@@ -721,6 +718,7 @@ public:
 
 private:
 	unsigned n, k;
+	double sigma2_2;
 	std::vector<std::vector<int>> _split;
 	std::vector<binvector> G;
 	node* root;
@@ -730,7 +728,8 @@ private:
 		for (int i = x, j = 0; i < y; i++, j++) {
 			ans += (R[i] - (c[j] ? -1 : 1)) * (R[i] - (c[j] ? -1 : 1));
 		}
-		return exp(- ans / 2);
+		ans = -ans / sigma2_2;
+		return exp(ans);
 	}
 };
 
