@@ -8,8 +8,21 @@ Simulate  2.0 100000 100
 Simulate  2.5 100000 100
 Simulate  3.0 100000 100
 Simulate  4.0 100000 100
-Simulate  5.0 100000 100
-Simulate  6.0 100000 100" >> input.txt
-g++ -DTEST -DTIME_LOG main.cpp binpoly.cpp -o sol.out
+Simulate  5.0 100000 100" >> input.txt
+g++ main.cpp -o sol.out
 ./sol.out
 rm sol.out
+while read -r line; do
+    errr=`echo $line | grep -Eo "^\S+" | sed 's/\./,/'`
+    echo $errr
+done < output.txt
+echo
+while read -r line; do
+    time=`echo $line | grep -Eo " \S+ " | sed -e 's/\./,/; s/ //'`
+    echo $time
+done < output.txt
+echo
+while read -r line; do
+    time=`echo $line | grep -Eo "\S+$" | sed 's/\./,/'`
+    echo $time
+done < output.txt

@@ -15,15 +15,15 @@
 #include <unordered_map>
 #include <vector>
 
-#define fail(b, msg) 						\
+#define fail(b, msg)						\
 	if (!(b)) { 							\
-		std::ofstream fout("output.txt"); 	\
+		std::ofstream fout("output.txt");	\
 		fout << "FAILURE: " << msg << "\n";	\
 		fout.close();						\
 		throw 2;							\
 	}
 
-// #define LOG
+#define LOG
 #define TIMELOG
 #define TEST
 #define EPS 1e-10
@@ -37,7 +37,7 @@ typedef std::chrono::milliseconds ms;
 #define __time_measure_with_msg(msg, line)									\
 	auto start = std::chrono::system_clock::now();							\
 	line;																	\
-	auto end = std::chrono::system_clock::now(); 							\
+	auto end = std::chrono::system_clock::now();							\
 	auto time_in_ms = std::chrono::duration_cast<ms>(end - start).count();	\
 	_log_time << msg << ": "												\
 			  << (time_in_ms > 1000 ? (time_in_ms / 1000.0) : time_in_ms)	\
@@ -711,17 +711,6 @@ public:
 		return k;
 	}
 
-	int dist() {
-		if (d == -1) {
-			d = n + 1;
-			for (int i = 1; i < k; i++) {
-				binvector bv(k, i);
-				d = std::min(d, encode(bv).wt());
-			}
-		}
-		return d;
-	}
-
 private:
 	int n, k, d = -1;
 	std::vector<std::vector<int>> _split;
@@ -754,6 +743,7 @@ int main() {
 	fin >> G;
 
 	RecursiveDecoder coder(G);
+	fout << CNT << std::endl;
 
 	std::string command;
 	bool skip = false;
@@ -801,6 +791,7 @@ int main() {
 
 			#ifdef TEST
 			auto start = std::chrono::system_clock::now();
+			clear_cnt();
 			#endif
 
 			auto [errr, sim_cnt] = simulate(coder, snr, iter_cnt, max_error);
@@ -810,14 +801,13 @@ int main() {
 			auto time_in_ms = std::chrono::duration_cast<ms>(end - start).count();
 			#endif
 
-			#ifdef LOG
-			fout << errr << " / " << sim_cnt << " = ";
-			#endif
-
 			fout << (errr + 0.0) / sim_cnt;
 
 			#if defined(TEST) && defined(TIMELOG)
-			fout << " " << time_in_ms;
+			fout << " " << time_in_ms / 1000.0;
+			#endif
+			#if defined(TEST) && defined(LOG)
+			fout << " " << CNT;
 			#endif
 		} else {
 			fail(false, "main: incorrect command");

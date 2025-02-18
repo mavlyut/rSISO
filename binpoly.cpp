@@ -1,7 +1,5 @@
-#pragma once
 #include <algorithm>
 #include <array>
-#include <bitset>
 #include <chrono>
 #include <climits>
 #include <cmath>
@@ -11,16 +9,13 @@
 #include <iostream>
 #include <iomanip>
 #include <map>
-#include <queue>
-#include <random>
-#include <set>
-#include <unordered_set>
+#include <ratio>
 #include <vector>
 
-template <typename _int_t>
-class binvector_ {
-	static const int chunk_size = sizeof(_int_t) * CHAR_BIT;
+#include "count_ops.cpp"
 
+template <typename _int_t, std::size_t chunk_size>
+class binvector_ {
 public:
 	binvector_() = default;
 
@@ -57,6 +52,7 @@ public:
 	}
 
 	void set(int i, bool val) {
+		CNT++;
 		// fail(i >= 0 && i < sz, "index out of bounds");
 		if (val) {
 			coefs[i / chunk_size] |= (1ull << (i % chunk_size));
@@ -66,7 +62,10 @@ public:
 	}
 
 	binvector_ subvector(int x, int y) const {
-		binvector_ ans(std::max(0, y - x));
+		if (y <= x) {
+			return binvector_(0);
+		}
+		binvector_ ans(y - x);
 		for (int i = 0; i < ans.size(); i++) {
 			ans.set(i, operator[](i + x));
 		}
@@ -155,39 +154,18 @@ public:
 		return out;
 	}
 
-	std::ostream& printAsPoly(std::ostream& out) const {
-		for (int i = size() - 1, start = 1; i >= 0; i--) {
-			if (operator[](i)) {
-				if (start) {
-					start = 0;
-				} else {
-					out << " + ";
-				}
-				if (i == 0) {
-					out << "1";
-				} else {
-					out << "x";
-					if (i > 1) {
-						out << "^" << i;
-					}
-				}
-			}
-		}
-		return out;
-	}
-
 public:
 	friend bool operator<(binvector_ const& a, binvector_ const& b) {
 		if (a.size() != b.size()) {
-				return a.size() < b.size();
+			return a.size() < b.size();
 		}
 		for (int i = a.size() - 1; i >= 0; i--) {
-				if (a[i] < b[i]) {
-						return true;
-				}
-				if (a[i] > b[i]) {
-						return false;
-				}
+			if (a[i] < b[i]) {
+				return true;
+			}
+			if (a[i] > b[i]) {
+				return false;
+			}
 		}
 		return false;
 	}
@@ -230,9 +208,9 @@ private:
 	friend struct std::hash<binvector_>;
 };
 
-template <typename T>
-struct std::hash<binvector_<T>> {
-	std::size_t operator()(binvector_<T> const& p) const noexcept {
+template <typename T, std::size_t N>
+struct std::hash<binvector_<T, N>> {
+	std::size_t operator()(binvector_<T, N> const& p) const noexcept {
 		auto int_hasher = std::hash<T>{};
 		std::size_t ans = int_hasher(p.sz);
 		for (T x : p.coefs) {
@@ -242,4 +220,4 @@ struct std::hash<binvector_<T>> {
 	}
 };
 
-using binvector = binvector_<std::size_t>;
+using binvector = binvector_<std::size_t, 64>;
