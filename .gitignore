@@ -39,3 +39,4 @@ RM_generator.cpp
 _log*
 _todo
 ___test.cpp
+__v*.cpp

@@ -99,44 +99,13 @@ public:
 	}
 
 public:
-	friend binvector_ operator+(binvector_ const& a, binvector_ const& b) {
-		binvector_ ans = getEmpty(std::max(a.size(), b.size()));
-		for (int i = 0; i < ans.size(); i++) {
-			ans.set(i, a[i] ^ b[i]);
+	binvector_& operator^=(binvector_ const& r) {
+		// fail(r.size() <= size(), "^=: invalid size");
+		for (int i = 0; i < r.coefs.size(); i++) {
+			CNT++;
+			coefs[i] ^= r.coefs[i];
 		}
-		return ans;
-	}
-
-	friend binvector_ mulAsPoly(binvector_ const& a, binvector_ const& b) {
-		binvector_ ans = getEmpty(a.size() + b.size());
-		for (int i = 0; i < ans.size(); i++) {
-			bool val = false;
-			for (int j = 0; j <= i; j++) {
-				val ^= (a[j] & b[i - j]);
-			}
-			ans.set(i, val);
-		}
-		return ans;
-	}
-
-	friend bool operator*(binvector_ const& a, binvector_ const& b) {
-		bool ans = false;
-		for (int i = 0; i < std::min(a.size(), b.size()); i++) {
-			ans ^= (a[i] & b[i]);
-		}
-		return ans;
-	}
-
-	friend binvector_ operator%(binvector_ a, binvector_ const& b) {
-		while (true) {
-			int diff = a.size() - b.size();
-			if (diff < 0 || a.isZero()) {
-				return a;
-			}
-			for (int i = diff; i < a.size(); i++) {
-				a.set(i, a[i] ^ b[i - diff]);
-			}
-		}
+		return *this;
 	}
 
 public:
@@ -189,7 +158,7 @@ public:
 	}
 
 	friend bool operator==(binvector_ const& a, binvector_ const& b) {
-		return (a + b).isZero();
+		return a.sz == b.sz && a.coefs == b.coefs;
 	}
 
 	friend bool operator!=(binvector_ const& a, binvector_ const& b) {

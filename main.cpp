@@ -161,7 +161,7 @@ void full_gauss(matrix& a) {
 	for (int i = gamma.size() - 1; i >= 0; i--) {
 		for (int j = 0; j < i; j++) {
 			if (a[j][gamma[i]]) {
-				a[j] = a[j] + a[i];
+				a[j] ^= a[i];
 			}
 		}
 	}
@@ -178,7 +178,7 @@ std::vector<int> minimal_span_form(matrix& G) {
 		for (int r = 0; r < i; r++) {
 			if (G[r][j] == 1) {
 				for (int c = 0; c < n; c++) {
-					G[r].set(c, (G[r][c] + G[i][c]) % 2);
+					G[r].set(c, G[r][c] ^ G[i][c]);
 				}
 			}
 		}
@@ -195,20 +195,6 @@ bool lin_indep(matrix const& M, binvector const& a) {
 	matrix M_ext(M);
 	M_ext.push_back(a);
 	return rg(M_ext) == M_ext.size();
-}
-
-matrix operator*(matrix const& A, matrix const& B) {
-	// std::cout << "mul:\n" << A << "*\n" << B << "\n";
-	fail(A.front().size() == B.size(), "mulMatrix: incompatible sizes");
-	matrix C(A.size(), binvector(B.front().size()));
-	for (int i = 0; i < C.size(); i++) {
-		for (int j = 0; j < C.front().size(); j++) {
-			for (int k = 0; k < B.size(); k++) {
-				C[i].set(j, C[i][j] ^ (A[i][k] & B[k][j]));
-			}
-		}
-	}
-	return C;
 }
 
 class RecursiveDecoder {
@@ -251,25 +237,6 @@ private: // Sectionalization
 
 	protected:
 		static constexpr double I = 0;
-
-		// (u v) * M
-		binvector combineAndMul(binvector const& u, binvector const& v, matrix const& M) const {
-			fail(u.size() + v.size() == M.size(), "combineAndMul: incompatible sizes");
-			binvector ans(M.front().size());
-			for (int i = 0; i < ans.size(); i++) {
-				bool val = false;
-				int t = 0;
-				for (int j = 0; j < u.size(); j++, t++) {
-					val ^= (u[j] & M[t][i]);
-				}
-				for (int j = 0; j < v.size(); j++, t++) {
-					val ^= (v[j] & M[t][i]);
-				}
-				ans.set(i, val);
-			}
-			return ans;
-		}
-
 		virtual void _clear() = 0;
 	};
 
@@ -282,10 +249,6 @@ private: // Sectionalization
 
 		bool is_leaf() const override {
 			return true;
-		}
-
-		binvector dot(binvector const& u, binvector const& v) const {
-			return combineAndMul(u, v, Gp);
 		}
 
 	public:
@@ -594,8 +557,8 @@ private:
 					if (ind >= nd->k2) {
 						v.change(ind - nd->k2);
 					}
-					a = a + nd->G_hat[ind];
-					b = b + nd->G_tilda[ind];
+					a ^= nd->G_hat[ind];
+					b ^= nd->G_tilda[ind];
 				}
 				nd->A[v] += nd->left->A[a] * nd->right->A[b];
 			}
@@ -612,8 +575,8 @@ private:
 		if (nd->k1 == 0) {
 			for (unsigned ind : GrayCode(nd->k1 + nd->k2)) {
 				if (ind != -1) {
-					a = a + nd->G_hat[ind];
-					b = b + nd->G_tilda[ind];
+					a ^= nd->G_hat[ind];
+					b ^= nd->G_tilda[ind];
 				}
 				nd->left->B[a] = nd->right->A[b];
 				nd->right->B[b] = nd->left->A[a];
@@ -625,8 +588,8 @@ private:
 					if (ind >= nd->k2) {
 						v.change(ind - nd->k2);
 					}
-					a = a + nd->G_hat[ind];
-					b = b + nd->G_tilda[ind];
+					a ^= nd->G_hat[ind];
+					b ^= nd->G_tilda[ind];
 				}
 				nd->left->B[a] += nd->B[v] * nd->right->A[b];
 				nd->right->B[b] += nd->B[v] * nd->left->A[a];
@@ -643,7 +606,7 @@ private:
 				if (ind >= nd->k2) {
 					v.change(ind - nd->k2);
 				}
-				c = c + nd->Gp[ind];
+				c ^= nd->Gp[ind];
 			}
 			double T = F(c, R, nd->x, nd->y);
 			nd->A[v] += T;
