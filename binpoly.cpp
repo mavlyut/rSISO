@@ -1,3 +1,4 @@
+#pragma once
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -59,6 +60,11 @@ public:
 		} else {
 			coefs[i / chunk_size] &= ~(1ull << (i % chunk_size));
 		}
+	}
+
+	void change(int i) {
+		CNT++;
+		coefs[i / chunk_size] ^= (1ull << (i % chunk_size));
 	}
 
 	binvector_ subvector(int x, int y) const {

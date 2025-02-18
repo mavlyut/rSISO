@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <array>
-#include "binpoly.cpp"
 #include <chrono>
 #include <cmath>
 #include <ctime>
@@ -14,6 +13,9 @@
 #include <set>
 #include <unordered_map>
 #include <vector>
+
+#include "binpoly.cpp"
+#include "gray_code.cpp"
 
 #define fail(b, msg)						\
 	if (!(b)) { 							\
@@ -196,7 +198,7 @@ bool lin_indep(matrix const& M, binvector const& a) {
 }
 
 matrix operator*(matrix const& A, matrix const& B) {
-	std::cout << "mul:\n" << A << "*\n" << B << "\n";
+	// std::cout << "mul:\n" << A << "*\n" << B << "\n";
 	fail(A.front().size() == B.size(), "mulMatrix: incompatible sizes");
 	matrix C(A.size(), binvector(B.front().size()));
 	for (int i = 0; i < C.size(); i++) {
@@ -225,7 +227,7 @@ public:
 private: // Sectionalization
 	class node {
 	protected:
-		node(int x, int y, int k1, int k2, int k3, matrix const& Gp)
+		node(unsigned x, unsigned y, unsigned k1, unsigned k2, unsigned k3, matrix const& Gp)
 			: x(x), y(y), k1(k1), k2(k2), k3(k3), A(1 << k1, I), B(1 << k1, I), Gp(Gp) {}
 
 	public:
@@ -242,8 +244,8 @@ private: // Sectionalization
 		}
 
 	public:
-		const int x, y;
-		const int k1, k2, k3;
+		const unsigned x, y;
+		const unsigned k1, k2, k3;
 		std::vector<double> A, B;
 		matrix Gp;
 
@@ -273,10 +275,10 @@ private: // Sectionalization
 
 	class leaf : public node {
 	public:
-		leaf(int x, int y, int k1, matrix const& Gp)
+		leaf(unsigned x, unsigned y, unsigned k1, matrix const& Gp)
 			: node(x, y, k1, Gp.size() - k1, Gp.size() - k1, Gp)
-			, A0(y - x, std::vector<double>(1 << k1, I))
-			, A1(y - x, std::vector<double>(1 << k1, I)) {}
+			, A0(y - x, std::vector<double>(1ull << k1, I))
+			, A1(y - x, std::vector<double>(1ull << k1, I)) {}
 
 		bool is_leaf() const override {
 			return true;
@@ -306,7 +308,7 @@ private: // Sectionalization
 
 	class inner : public node {
 	public:
-		inner(int x, int y, int z, node* left, node* right, int k1, int k2, int k3, matrix const& G_hat, matrix const& G_tilda, matrix const& Gp)
+		inner(unsigned x, unsigned y, unsigned z, node* left, node* right, unsigned k1, unsigned k2, unsigned k3, matrix const& G_hat, matrix const& G_tilda, matrix const& Gp)
 			: node(x, y, k1, k2, k3, Gp), z(z), left(left), right(right), G_hat(G_hat), G_tilda(G_tilda) {
 			fail(k3 == left->k3 + right->k3 + k2, "inner-ctor: incorrect dims");
 			fail(x < z && z < y, "inner-ctor: z must be in (x,y)");
@@ -319,15 +321,9 @@ private: // Sectionalization
 			return false;
 		}
 
-		std::pair<binvector, binvector> mapping(binvector const& u, binvector const& v) const {
-			return {combineAndMul(u, v, G_hat), combineAndMul(u, v, G_tilda)};
-		}
-
 	public:
-		int z;
+		unsigned z;
 		node *left, *right;
-
-	private:
 		matrix G_hat, G_tilda;
 	
 	protected:
@@ -395,10 +391,17 @@ private: // Sectionalization
 			}
 		}
 
+		// TODO
+		for (int x = 0; x <= n; x++) {
+			for (int y = x + 2; y <= n; y++) {
+				_split[x][y] = (x + y) / 2;
+			}
+		}
+
 		__log("Gp_sz:  " << _Gp_size << "\nGs_sz:  " << _Gs_size << "\n");
 		__log("split: " << _split << "\n");
 
-		std::vector<int> sections = {0, n};
+		std::vector<unsigned> sections = {0, n};
 		std::function<void(int, int)> rec_log = [&](int x, int y) {
 			int z = _split[x][y];
 
@@ -423,7 +426,7 @@ private: // Sectionalization
 		int z = _split[x][y];
 		if (z == -1) {
 			matrix Gp, Gs, Gl;
-			for (int i = 0; i < k; i++) {
+			for (unsigned i = 0; i < k; i++) {
 				binvector row = G[i];
 				binvector append = row.subvector(x, y);
 				if (row.subvector(0, x).isZero() && row.subvector(y, n).isZero()) {
@@ -433,7 +436,7 @@ private: // Sectionalization
 					Gl.push_back(append);
 				}
 			}
-			int k1 = 0;
+			unsigned k1 = 0;
 			for (binvector const& row : Gl) {
 				if (lin_indep(Gp, row)) {
 					Gp.push_back(row);
@@ -446,8 +449,8 @@ private: // Sectionalization
 			return new leaf(x, y, k1, Gp);
 		}
 
-		matrix Gp, _G0, _G1; int k3 = 0;
-		for (int i = 0; i < k; i++) {
+		matrix Gp, _G0, _G1; unsigned k3 = 0;
+		for (unsigned i = 0; i < k; i++) {
 			binvector row = G[i];
 			binvector append = row.subvector(x, y);
 			if (row.subvector(0, x).isZero() && row.subvector(y, n).isZero()) {
@@ -463,7 +466,7 @@ private: // Sectionalization
 		}
 
 		matrix G_0, G_1;
-		int k1 = 0, k2 = 0;
+		unsigned k1 = 0, k2 = 0;
 		for (binvector const& row : _G0) {
 			if (lin_indep(Gp, row)) {
 				Gp.push_back(row);
@@ -592,14 +595,16 @@ private:
 		upward_pass(nd->left, R);
 		upward_pass(nd->right, R);
 		if (nd->k1 != 0) {
-			binvector w_zero(nd->k2);
-			for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
-				binvector vv(nd->k1, v);
-				for (std::size_t w = 0; w < (1ull << nd->k2); w++) {
-					binvector ww(nd->k2, w);
-					auto [a, b] = nd->mapping(ww, vv);
-					nd->A[v] += nd->left->A[a] * nd->right->A[b];
+			binvector a(nd->left->k1), b(nd->right->k1), v(nd->k1);
+			for (unsigned ind : GrayCode(nd->k1 + nd->k2)) {
+				if (ind != -1) {
+					if (ind >= nd->k2) {
+						v.change(ind - nd->k2);
+					}
+					a = a + nd->G_hat[ind];
+					b = b + nd->G_tilda[ind];
 				}
+				nd->A[v] += nd->left->A[a] * nd->right->A[b];
 			}
 		}
 	}
@@ -610,24 +615,28 @@ private:
 			return;
 		}
 		inner* nd = reinterpret_cast<inner*>(rt);
+		binvector a(nd->left->k1), b(nd->right->k1);
 		if (nd->k1 == 0) {
-			binvector vv_zero(0);
-			for (std::size_t w = 0; w < (1ull << nd->k2); w++) {
-				binvector vv(nd->k2, w);
-				auto [a, b] = nd->mapping(binvector(nd->k2, w), vv_zero);
+			for (unsigned ind : GrayCode(nd->k1 + nd->k2)) {
+				if (ind != -1) {
+					a = a + nd->G_hat[ind];
+					b = b + nd->G_tilda[ind];
+				}
 				nd->left->B[a] = nd->right->A[b];
 				nd->right->B[b] = nd->left->A[a];
 			}
 		} else {
-			binvector w_zero(nd->k2);
-			for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
-				binvector vv(nd->k1, v);
-				for (std::size_t w = 0; w < (1ull << nd->k2); w++) {
-					binvector ww(nd->k2, w);
-					auto [a, b] = nd->mapping(ww, vv);
-					nd->left->B[a] += nd->B[v] * nd->right->A[b];
-					nd->right->B[b] += nd->B[v] * nd->left->A[a];
+			binvector v(nd->k1);
+			for (unsigned ind : GrayCode(nd->k1 + nd->k2)) {
+				if (ind != -1) {
+					if (ind >= nd->k2) {
+						v.change(ind - nd->k2);
+					}
+					a = a + nd->G_hat[ind];
+					b = b + nd->G_tilda[ind];
 				}
+				nd->left->B[a] += nd->B[v] * nd->right->A[b];
+				nd->right->B[b] += nd->B[v] * nd->left->A[a];
 			}
 		}
 		downward_pass(nd->left, L);
@@ -689,7 +698,6 @@ public:
 				x.set(t, rand() % 2);
 			}
 			binvector enc = coder.encode(x);
-
 			std::vector<double> y(coder.length());
 			double coef = 2.0f / (sigma * sigma);
 			for (int t = 0; t < coder.length(); t++) {
@@ -703,16 +711,16 @@ public:
 	}
 
 public:
-	int length() const {
+	unsigned length() const {
 		return n;
 	}
 
-	int dim() const {
+	unsigned dim() const {
 		return k;
 	}
 
 private:
-	int n, k, d = -1;
+	unsigned n, k;
 	std::vector<std::vector<int>> _split;
 	std::vector<binvector> G;
 	node* root;
