@@ -14,8 +14,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include "binpoly.cpp"
+#include "defines.h"
+#include "binvector.h"
 #include "gray_code.cpp"
+#ifdef CNTLOG
+#include "count_ops.cpp"
+#endif
 
 #define fail(b, msg)						\
 	if (!(b)) { 							\
@@ -25,12 +29,8 @@
 		throw 2;							\
 	}
 
-#define LOG
-#define TIMELOG
-#define TEST
-#define EPS 1e-10
-static const double INF = INFINITY;
-static constexpr double COEF = M_2_SQRTPI * M_SQRT1_2 / 2;
+static const _Float64 INF = INFINITY;
+static constexpr _Float64 COEF = M_2_SQRTPI * M_SQRT1_2 / 2;
 static std::mt19937 gen(time(0));
 std::ofstream _log_time("_log_time");
 std::ofstream _log_out("_log_out");
@@ -63,7 +63,7 @@ using matrix = std::vector<binvector>;
 
 template <typename T>
 std::ostream& operator<<(std::ostream& out, std::vector<T> const& a) {
-	for (int i = 0; i < a.size(); i++) {
+	for (unsigned i = 0; i < a.size(); i++) {
 		if (i != 0) {
 			out << ' ';
 		}
@@ -74,7 +74,7 @@ std::ostream& operator<<(std::ostream& out, std::vector<T> const& a) {
 
 template <typename T>
 std::ostream& operator<<(std::ostream& out, std::vector<std::vector<T>> const& a) {
-	for (int i = 0; i < a.size(); i++) {
+	for (unsigned i = 0; i < a.size(); i++) {
 		if (i != 0) {
 			out << "\n\t";
 		}
@@ -85,7 +85,7 @@ std::ostream& operator<<(std::ostream& out, std::vector<std::vector<T>> const& a
 
 std::ostream& operator<<(std::ostream& out, matrix const& a) {
 	for (binvector const& row : a) {
-			for (int i = 0; i < row.size(); i++) {
+			for (unsigned i = 0; i < row.size(); i++) {
 			if (i != 0) {
 				out << ' ';
 			}
@@ -104,29 +104,16 @@ std::istream& operator>>(std::istream& in, std::vector<T>& a) {
 	return in;
 }
 
-binvector operator*(binvector const& x, matrix const& A) {
-	fail(x.size() == A.size(), "mul: incompatible sizes");
-	binvector ans(A.front().size());
-	for (int i = 0; i < ans.size(); i++) {
-		bool val = false;
-		for (int j = 0; j < x.size(); j++) {
-			val ^= (x[j] & A[j][i]);
-		}
-		ans.set(i, val);
-	}
-	return ans;
-}
-
 std::vector<int> gauss(matrix& a) {
-	int k = a.size();
-	int n = a[0].size();
-	int last_c = 0;
+	unsigned k = a.size();
+	unsigned n = a[0].size();
+	unsigned last_c = 0;
 	std::vector<int> gamma;
-	for (int i = 0; i < k; ++i) {
+	for (unsigned i = 0; i < k; ++i) {
 		while (last_c < n) {
 			bool fl = false;
 			for (int j = i; j < k; ++j) {
-				if (a[j][last_c] == 1) {
+				if (a[j][last_c]) {
 					fl = true;
 					std::swap(a[i], a[j]);
 					break;
@@ -138,14 +125,14 @@ std::vector<int> gauss(matrix& a) {
 			last_c++;
 		}
 		if (last_c == n) {
-			for (int ii = i; ii < k; ii++) {
+			for (unsigned ii = i; ii < k; ii++) {
 				a.pop_back();
 			}
 			break;
 		}
 		gamma.push_back(last_c);
-		for (int j = i + 1; j < k; ++j) {
-			if (a[j][last_c] == 1) {
+		for (unsigned j = i + 1; j < k; ++j) {
+			if (a[j][last_c]) {
 				for (int t = 0; t < n; ++t) {
 					a[j].set(t, a[j][t] ^ a[i][t]);
 				}
@@ -158,8 +145,8 @@ std::vector<int> gauss(matrix& a) {
 
 void full_gauss(matrix& a) {
 	std::vector<int> gamma = gauss(a);
-	for (int i = gamma.size() - 1; i >= 0; i--) {
-		for (int j = 0; j < i; j++) {
+	for (unsigned i = gamma.size(); i-- > 0; ) {
+		for (unsigned j = 0; j < i; j++) {
 			if (a[j][gamma[i]]) {
 				a[j] ^= a[i];
 			}
@@ -169,17 +156,13 @@ void full_gauss(matrix& a) {
 
 std::vector<int> minimal_span_form(matrix& G) {
 	std::vector<int> gamma = gauss(G);
-	int n = G[0].size(), k = G.size();
-	for (int i = k - 1; i >= 0; i--) {
-		int j = n - 1;
-		while (j >= 0 && G[i][j] == 0) {
-			j--;
-		}
-		for (int r = 0; r < i; r++) {
+	unsigned n = G[0].size(), k = G.size();
+	for (unsigned i = k; i-- > 0; ) {
+		unsigned j = n;
+		while (j-- > 0 && G[i][j] == 0) {}
+		for (unsigned r = 0; r < i; r++) {
 			if (G[r][j] == 1) {
-				for (int c = 0; c < n; c++) {
-					G[r].set(c, G[r][c] ^ G[i][c]);
-				}
+				G[r] ^= G[i];
 			}
 		}
 	}
@@ -199,14 +182,16 @@ bool lin_indep(matrix const& M, binvector const& a) {
 
 class RecursiveDecoder {
 public:
-	RecursiveDecoder(matrix const& _G) : sigma2_2(0), G(_G) {
+	RecursiveDecoder(matrix const& _G) : G(_G) {
 		time_measure(minimal_span_form(G));
 
 		__log("MSF:\n" << G << "\n")
-		
+
 		k = G.size();
 		n = G.front().size();
-		_split = std::vector(n + 1, std::vector(n + 1, -1));
+		p0.resize(n);
+		p1.resize(n);
+		_split = std::vector(n + 1, std::vector<unsigned>(n + 1, UNINIT));
 		time_measure(root = sectionalization());
 	}
 
@@ -229,6 +214,10 @@ private: // Sectionalization
 			}
 		}
 
+		virtual void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) = 0;
+
+		virtual void downward_pass(std::vector<double>& L) const = 0;
+
 	public:
 		const unsigned x, y;
 		const unsigned k1, k2, k3;
@@ -236,25 +225,43 @@ private: // Sectionalization
 		matrix Gp;
 
 	protected:
-		static constexpr double I = 0;
+		static constexpr _Float64 I = 0;
 		virtual void _clear() = 0;
 	};
 
 	class leaf : public node {
 	public:
 		leaf(unsigned x, unsigned y, unsigned k1, matrix const& Gp)
-			: node(x, y, k1, Gp.size() - k1, Gp.size() - k1, Gp)
-			, A0(y - x, std::vector<double>(1ull << k1, I))
-			, A1(y - x, std::vector<double>(1ull << k1, I)) {}
+			: node(x, y, k1, Gp.size() - k1, Gp.size() - k1, Gp) {
+			full_gauss(this->Gp);
+		}
 
 		bool is_leaf() const override {
 			return true;
 		}
 
-	public:
-		std::vector<std::vector<double>> A0, A1;
-	
 	protected:
+		virtual void _clear() = 0;
+
+		double F(binvector const& c, std::vector<double> const& p0, std::vector<double> const& p1) const {
+			double ans = 1.0;
+			for (unsigned i = x, j = 0; i < y; i++, j++) {
+				ans *= (c[j] ? p1[i] : p0[i]);
+			}
+			return ans;
+		}
+	};
+
+	class leaf_no_simplify : public leaf {
+	public:
+		leaf_no_simplify(unsigned x, unsigned y, unsigned k1, matrix const& Gp)
+			: leaf(x, y, k1, Gp)
+			, A0(y - x, std::vector<double>(1ull << k1, I))
+			, A1(y - x, std::vector<double>(1ull << k1, I)) {}
+
+	protected:
+		std::vector<std::vector<double>> A0, A1;
+
 		void _clear() {
 			for (auto& i : A0) {
 				for (double& j : i) {
@@ -267,7 +274,140 @@ private: // Sectionalization
 				}
 			}
 		}
+
+		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override {
+			binvector v(k1), c(y - x);
+			for (unsigned ind : GrayCode(k1 + k2)) {
+				if (ind != UNINIT) {
+					if (ind >= k2) {
+						v.change(ind - k2);
+					}
+					c ^= Gp[ind];
+				}
+				double T = F(c, p0, p1);
+				A[v] += T;
+				for (unsigned i = 0; i < y - x; i++) {
+					if (c[i]) {
+						A1[i][v] += T;
+					} else {
+						A0[i][v] += T;
+					}
+				}
+			}
+		}
+
+		void downward_pass(std::vector<double>& L) const override {
+			unsigned sz = y - x;
+			std::vector<double> P0(sz, 0.0), P1(sz, 0.0);
+			for (std::size_t v = 0; v < (1ull << k1); v++) {
+				for (unsigned i = 0; i < sz; i++) {
+					P0[i] += A0[i][v] * B[v];
+					P1[i] += A1[i][v] * B[v];
+				}
+			}
+
+			__log("P0 " << P0 << "\nP1 " << P1 << "\n");
+
+			for (unsigned i = x, j = 0; j < sz; i++, j++) {
+				if (P0[j] < EPS && P1[j] < EPS) {
+					L[i] = NAN;
+				} else if (P0[j] < EPS) {
+					L[i] = -INF;
+				} else if (P1[j] < EPS) {
+					L[i] = INF;
+				} else {
+					L[i] = log(P0[j] / P1[j]);
+				}
+			}
+		}
 	};
+
+#ifdef ENABLE_OPT_1
+	class leaf_simplify_1 : public leaf {
+	public:
+		leaf_simplify_1(unsigned x, unsigned y, matrix const& Gp) : leaf(x, y, 0, Gp) {
+			fail(Gp.size() == 1 && Gp[0].isOnes(), "leaf_s1: inappropriate optimization");
+		}
+
+		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override {
+			for (unsigned i = x; i < y; i++) {
+				ext_l += log(p0[i] / p1[i]);
+			}
+		}
+
+		void downward_pass(std::vector<double>& L) const override {
+			for (unsigned i = x; i < y; i++) {
+				L[i] = ext_l;
+			}
+		}
+
+	private:
+		double ext_l;
+
+		void _clear() override {
+			ext_l = I;
+		}
+	};
+#endif // ENABLE_OPT_1
+
+#ifdef ENABLE_OPT_2
+	class leaf_simplify_2 : public leaf {
+	public:
+		leaf_simplify_2(unsigned x, unsigned y, matrix const& Gp) : leaf(x, y, 1, Gp) {
+			fail(Gp.size() == 1 && Gp[0].isOnes(), "leaf_s2: inappropriate optimization");
+		}
+
+		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override {
+			for (unsigned i = x; i < y; i++) {
+				A[0] *= p0[i];
+				A[1] *= p1[i];
+			}
+		}
+
+		void downward_pass(std::vector<double>& L) const override {
+			double ext_l = log((B[0] * A[0]) / (B[1] * A[1]));
+			for (unsigned i = x; i < y; i++) {
+				L[i] = ext_l;
+			}
+		}
+
+	private:
+		void _clear() override {
+			A[0] = 1;
+			A[1] = 1;
+		}
+	};
+#endif // ENABLE_OPT_2
+
+#ifdef ENABLE_OPT_3
+	class leaf_simplify_3 : public leaf_no_simplify {
+	public:
+		leaf_simplify_3(unsigned x, unsigned y, unsigned k1, matrix const& Gp) : leaf_no_simplify(x, y, k1, Gp) {
+			fail(y == x + 2, "leaf_s3: inappropriate optimization");
+			fail(k1 + k2 == 2 && k1 != 0, "leaf_s3: inappropriate optimization");
+		}
+
+		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override {
+			double Phi00 = p0[x] * p0[x + 1];
+			double Phi10 = p0[x + 1] - Phi00;
+			double Phi01 = p0[x] - Phi00;
+			double Phi11 = p1[x + 1] - Phi01;
+			if (k1 == 1) {
+				A[0] = Phi00 + Phi11;
+				A[1] = Phi01 + Phi10;
+				A0[0][0] = A0[1][0] = Phi00;
+				A1[0][0] = A1[1][0] = Phi11;
+				A0[0][1] = A1[1][1] = Phi01;
+				A1[0][1] = A0[1][1] = Phi10;
+			} else {
+				A[0] = A0[0][0] = A0[1][0] = Phi00;
+				A[1] = A1[0][1] = A0[1][1] = Phi10;
+				A[2] = A0[0][2] = A1[1][2] = Phi01;
+				A[3] = A1[0][3] = A1[1][3] = Phi11;
+			}
+		}
+	};
+#endif // ENABLE_OPT_3
 
 	class inner : public node {
 	public:
@@ -284,11 +424,58 @@ private: // Sectionalization
 			return false;
 		}
 
+		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override {
+			left->upward_pass(p0, p1);
+			right->upward_pass(p0, p1);
+			if (k1 != 0) {
+				binvector a(left->k1), b(right->k1), v(k1);
+				for (unsigned ind : GrayCode(k1 + k2)) {
+					if (ind != UNINIT) {
+						if (ind >= k2) {
+							v.change(ind - k2);
+						}
+						a ^= G_hat[ind];
+						b ^= G_tilda[ind];
+					}
+					A[v] += left->A[a] * right->A[b];
+				}
+			}
+		}
+
+		void downward_pass(std::vector<double>& L) const override {
+			binvector a(left->k1), b(right->k1);
+			if (k1 == 0) {
+				for (unsigned ind : GrayCode(k1 + k2)) {
+					if (ind != UNINIT) {
+						a ^= G_hat[ind];
+						b ^= G_tilda[ind];
+					}
+					left->B[a] = right->A[b];
+					right->B[b] = left->A[a];
+				}
+			} else {
+				binvector v(k1);
+				for (unsigned ind : GrayCode(k1 + k2)) {
+					if (ind != UNINIT) {
+						if (ind >= k2) {
+							v.change(ind - k2);
+						}
+						a ^= G_hat[ind];
+						b ^= G_tilda[ind];
+					}
+					left->B[a] += B[v] * right->A[b];
+					right->B[b] += B[v] * left->A[a];
+				}
+			}
+			left->downward_pass(L);
+			right->downward_pass(L);
+		}
+
 	public:
 		unsigned z;
 		node *left, *right;
 		matrix G_hat, G_tilda;
-	
+
 	protected:
 		void _clear() {
 			left->clear();
@@ -297,16 +484,22 @@ private: // Sectionalization
 	};
 
 	node* sectionalization() {
-		std::vector<std::vector<int>> _Gp_size(n + 1, std::vector<int>(n + 1, 0));
-		std::vector<std::vector<int>> _Gs_size(n + 1, std::vector<int>(n + 1, 0));
-		std::vector<std::vector<std::vector<std::size_t>>> phi_u_c(n + 1, std::vector<std::vector<std::size_t>>(n + 1, std::vector<std::size_t>(n + 1, 0)));
-		std::vector<std::vector<std::vector<std::size_t>>> phi_d_c(n + 1, std::vector<std::vector<std::size_t>>(n + 1, std::vector<std::size_t>(n + 1, 0)));
-		std::vector<std::vector<std::size_t>> phi_u_l(n + 1, std::vector<std::size_t>(n + 1, 0));
-		std::vector<std::vector<std::size_t>> phi_d_l(n + 1, std::vector<std::size_t>(n + 1, 0));
-		std::vector<std::vector<std::size_t>> phi(n + 1, std::vector<std::size_t>(n + 1, -1));
+		std::vector<std::vector<unsigned>> _Gp_size(n + 1, std::vector<unsigned>(n + 1, 0));
+		std::vector<std::vector<unsigned>> _Gs_size(n + 1, std::vector<unsigned>(n + 1, 0));
+		std::vector<std::vector<std::vector<std::size_t>>> phi_u_c(n + 1, std::vector<std::vector<std::size_t>>(n + 1, std::vector<std::size_t>(n + 1, UNINIT)));
+		std::vector<std::vector<std::vector<std::size_t>>> phi_d_c(n + 1, std::vector<std::vector<std::size_t>>(n + 1, std::vector<std::size_t>(n + 1, UNINIT)));
+		std::vector<std::vector<std::size_t>> phi_u_l(n + 1, std::vector<std::size_t>(n + 1, UNINIT));
+		std::vector<std::vector<std::size_t>> phi_d_l(n + 1, std::vector<std::size_t>(n + 1, UNINIT));
+		std::vector<std::vector<unsigned>> phi(n + 1, std::vector<unsigned>(n + 1, UNINIT));
 
-		for (int x = 0; x <= n; x++) {
-			for (int y = x + 1; y <= n; y++) {
+		std::function<void(std::size_t&, std::size_t const&)> update_phi = [](std::size_t& x, std::size_t const& y) {
+			if (x == UNINIT) {
+				x = y;
+			}
+		};
+
+		for (unsigned x = 0; x <= n; x++) {
+			for (unsigned y = x + 1; y <= n; y++) {
 				matrix Gp;
 				int k3 = 0;
 				for (binvector const& row : G) {
@@ -318,25 +511,47 @@ private: // Sectionalization
 				gauss(Gp);
 				_Gp_size[x][y] = Gp.size();
 				_Gs_size[x][y] = k3;
+
+				#ifdef ENABLE_OPT_1
+				if (Gp.size() == 1 && G[0].isOnes() && k3 == 1) {
+					update_phi(phi_u_l[x][y], y - x);
+					update_phi(phi_d_l[x][y], 0);
+				}
+				#endif
+
+				#ifdef ENABLE_OPT_2
+				if (Gp.size() == 1 && G[0].isOnes() && k3 == 0) {
+					update_phi(phi_u_l[x][y], 2 * (y - x));
+					update_phi(phi_d_l[x][y], 3);
+				}
+				#endif
+
+				#ifdef ENABLE_OPT_3
+				if (Gp.size() == 2 && y - x == 2) {
+					update_phi(phi_u_l[x][y], 4);
+					update_phi(phi_d_l[x][y], 6);
+				}
+				#endif
 			}
 		}
 
-		for (int x = 0; x <= n; x++) {
-			for (int y = x + 1; y <= n; y++) {
-				phi_u_l[x][y] = (1ull << _Gp_size[x][y]) * (y - x - 1);
-				phi_d_l[x][y] = ((1ull << (_Gp_size[x][y] - _Gs_size[x][y] + 1)) + 1) * (y - x);
-				for (int z = x + 1; z < y - 1; z++) {
-					int k1_k2 = _Gp_size[x][y] - _Gs_size[x][z] - _Gs_size[z][y];
-					phi_u_c[x][y][z] = (1ull << k1_k2);
-					phi_d_c[x][y][z] = (1ull << (k1_k2 + 1));
+		for (unsigned x = 0; x <= n; x++) {
+			for (unsigned y = x + 1; y <= n; y++) {
+				update_phi(phi_u_l[x][y], (1ull << _Gp_size[x][y]) * (y - x - 1));
+				update_phi(phi_d_l[x][y], ((1ull << (_Gp_size[x][y] - _Gs_size[x][y] + 1)) + 1) * (y - x));
+				for (unsigned z = x + 1; z < y - 1; z++) {
+					unsigned k1_k2 = _Gp_size[x][y] - _Gs_size[x][z] - _Gs_size[z][y];
+					update_phi(phi_u_c[x][y][z], (1ull << k1_k2));
+					update_phi(phi_d_c[x][y][z], (1ull << (k1_k2 + 1)));
 				}
 			}
 		}
 
-		std::function<int(int, int)> get_phi = [&](int x, int y) -> int {
-			if (phi[x][y] == -1) {
-				std::size_t min_score = phi_u_l[x][y] + phi_d_l[x][y], ind_min = -1;
-				for (int z = x + 1; z < y - 1; z++) {
+		std::function<unsigned(unsigned, unsigned)> get_phi = [&](unsigned x, unsigned y) -> unsigned {
+			if (phi[x][y] == UNINIT) {
+				unsigned ind_min = UNINIT;
+				std::size_t min_score = phi_u_l[x][y] + phi_d_l[x][y];
+				for (unsigned z = x + 1; z < y - 1; z++) {
 					std::size_t score = phi_u_c[x][y][z] + phi_d_c[x][y][z] + get_phi(x, z) + get_phi(z, y);
 					if (score < min_score) {
 						min_score = score;
@@ -348,8 +563,8 @@ private: // Sectionalization
 			}
 			return phi[x][y];
 		};
-		for (int x = 0; x <= n; x++) {
-			for (int y = x + 1; y <= n; y++) {
+		for (unsigned x = 0; x <= n; x++) {
+			for (unsigned y = x + 1; y <= n; y++) {
 				get_phi(x, y);
 			}
 		}
@@ -358,12 +573,12 @@ private: // Sectionalization
 		__log("split: " << _split << "\n");
 
 		std::vector<unsigned> sections = {0, n};
-		std::function<void(int, int)> rec_log = [&](int x, int y) {
-			int z = _split[x][y];
+		std::function<void(unsigned, unsigned)> rec_log = [&](unsigned x, unsigned y) {
+			unsigned z = _split[x][y];
 
 			__log("[" << x << ";" << y << ") at " << z << "\n");
 
-			if (z == -1) {
+			if (z == UNINIT) {
 				return;
 			}
 			sections.push_back(z);
@@ -372,15 +587,15 @@ private: // Sectionalization
 		};
 		rec_log(0, n);
 		std::sort(sections.begin(), sections.end());
-		std::cout << sections << "\n\n";
+		std::cout << sections << std::endl;
 
 		return rec_build_section_tree(0, n);
 	}
 
-	node* rec_build_section_tree(int x, int y) {
-		fail(0 <= x && x < y && y <= n, "rec_build: incorrect bounds");
-		int z = _split[x][y];
-		if (z == -1) {
+	node* rec_build_section_tree(unsigned x, unsigned y) {
+		fail(x < y && y <= n, "rec_build: incorrect bounds");
+		unsigned z = _split[x][y];
+		if (z == UNINIT) {
 			matrix Gp, Gs, Gl;
 			for (unsigned i = 0; i < k; i++) {
 				binvector row = G[i];
@@ -402,7 +617,28 @@ private: // Sectionalization
 
 			__log("leaf: " << x << " " << y << "\nGp:\n" << Gp << "\n");
 
-			return new leaf(x, y, k1, Gp);
+			#ifdef ENABLE_OPT_1
+			if (k1 == 0 && Gp.size() == 1 && Gp[0].isOnes()) {
+				_log_out << "Simplify 1: " << x << " " << y << std::endl;
+				return new leaf_simplify_1(x, y, Gp);
+			}
+			#endif
+
+			#ifdef ENABLE_OPT_2
+			if (k1 == 1 && Gp.size() == 1 && Gp[0].isOnes()) {
+				_log_out << "Simplify 2: " << x << " " << y << std::endl;
+				return new leaf_simplify_2(x, y, Gp);
+			}
+			#endif
+
+			#ifdef ENABLE_OPT_3
+			if (y - x == 2 && Gp.size() == 2) {
+				_log_out << "Simplify 3: " << x << " " << y << std::endl;
+				return new leaf_simplify_3(x, y, k1, Gp);
+			}
+			#endif
+
+			return new leaf_no_simplify(x, y, k1, Gp);
 		}
 
 		matrix Gp, _G0, _G1; unsigned k3 = 0;
@@ -449,12 +685,12 @@ private: // Sectionalization
 		matrix G_tilda(k1 + k2, binvector(right->k1));
 		{
 			matrix G_hat_ext(z - x, binvector(left->k1 + left->k3 + k1 + k2));
-			for (int i = 0; i < z - x; i++) {
-				int j = 0;
-				for (int t = 0; t < left->Gp.size(); t++, j++) {
+			for (unsigned i = 0; i < z - x; i++) {
+				unsigned j = 0;
+				for (unsigned t = 0; t < left->Gp.size(); t++, j++) {
 					G_hat_ext[i].set(j, left->Gp[t][i]);
 				}
-				for (int t = 0; t < G_0.size(); t++, j++) {
+				for (unsigned t = 0; t < G_0.size(); t++, j++) {
 					G_hat_ext[i].set(j, G_0[t][i]);
 				}
 			}
@@ -462,32 +698,32 @@ private: // Sectionalization
 
 			__log("G_hat_ext:\n" << G_hat_ext << "\n");
 
-			for (int i = 0; i < k1 + k2; i++) {
-				for (int j = 0; j < left->k1; j++) {
+			for (unsigned i = 0; i < k1 + k2; i++) {
+				for (unsigned j = 0; j < left->k1; j++) {
 					G_hat[i].set(left->k1 - j - 1, G_hat_ext[G_hat_ext.size() - j - 1][i + left->k1 + left->k3]);
 				}
 			}
 		}
 		{
 			matrix G_tilda_ext(y - z, binvector(right->k1 + right->k3 + k1 + k2));
-			for (int i = 0; i < y - z; i++) {
-				int j = 0;
-				for (int t = 0; t < right->Gp.size(); t++, j++) {
+			for (unsigned i = 0; i < y - z; i++) {
+				unsigned j = 0;
+				for (unsigned t = 0; t < right->Gp.size(); t++, j++) {
 					G_tilda_ext[i].set(j, right->Gp[t][i]);
 				}
-				for (int t = 0; t < G_1.size(); t++, j++) {
+				for (unsigned t = 0; t < G_1.size(); t++, j++) {
 					G_tilda_ext[i].set(j, G_1[t][i]);
 				}
 			}
-			
+
 			__log("G_tilda_ext (before Gauss):\n" << G_tilda_ext << "\n");
 
 			full_gauss(G_tilda_ext);
 
 			__log("G_tilda_ext:\n" << G_tilda_ext << "\n");
 
-			for (int i = 0; i < k1 + k2; i++) {
-				for (int j = 0; j < right->k1; j++) {
+			for (unsigned i = 0; i < k1 + k2; i++) {
+				for (unsigned j = 0; j < right->k1; j++) {
 					G_tilda[i].set(right->k1 - j - 1, G_tilda_ext[G_tilda_ext.size() - j - 1][i + right->k1 + right->k3]);
 				}
 			}
@@ -501,28 +737,32 @@ private: // Sectionalization
 public:
 	binvector encode(binvector const& c) const {
 		fail(c.size() == k, "encode: size is incorrect");
-		return c * G;
+		binvector ans(n);
+		for (unsigned i = 0; i < k; i++) {
+			if (c[i]) {
+				ans ^= G[i];
+			}
+		}
+		return ans;
 	}
 
 public:
-	std::vector<double> decode_soft(std::vector<double> const& y) const {
-		root->clear();
-		std::vector<double> L(length(), 0);
-		time_measure(upward_pass(root, y));
-		time_measure(downward_pass(root, L));
-
-		printLog(root);
-
-		return L;
-	}
-
-	binvector decode(std::vector<double> const& y) const {
-		auto L = decode_soft(y);
-		binvector ans(length());
-		for (int i = 0; i < n; i++) {
-			ans.set(i, L[i] < 0);
+	std::vector<double> decode_soft(std::vector<double> const& L_in) {
+		for (unsigned i = 0; i < n; i++) {
+			double L_exp = exp(L_in[i]);
+			double z = 1 + L_exp;
+			p0[i] = L_exp / z;
+			p1[i] = 1.0 / z;
 		}
-		return ans;
+
+		root->clear();
+		std::vector<double> L_out(length(), 0);
+		time_measure(root->upward_pass(p0, p1));
+		time_measure(root->downward_pass(L_out));
+
+		// printLog(root);
+
+		return L_out;
 	}
 
 private:
@@ -530,143 +770,42 @@ private:
 		__log("[" << rt->x << ", " << rt->y << ")\n");
 		__log("k = " << rt->k1 << " " << rt->k2 << " " << rt->k3 << "\n");
 		__log("Gp:\n" << rt->Gp << "\n");
-		if (rt->is_leaf()) {
-			leaf* nd = reinterpret_cast<leaf*>(rt);
-			__log("A/0: " << nd->A0 << "\nA/1: " << nd->A1
-				<< "\nA: " << nd->A << "\nB: " << nd->B << "\n");
-			return;
-		}
+		// if (rt->is_leaf()) {
+		// 	leaf* nd = reinterpret_cast<leaf*>(rt);
+		// 	__log("A/0: " << nd->A0 << "\nA/1: " << nd->A1
+		// 		<< "\nA: " << nd->A << "\nB: " << nd->B << "\n");
+		// 	return;
+		// }
 		inner* nd = reinterpret_cast<inner*>(rt);
 		__log("A: " << nd->A << "\nB: " << nd->B << "\n");
 		printLog(nd->left);
 		printLog(nd->right);
 	}
 
-	void upward_pass(node* rt, std::vector<double> const& R) const {
-		if (rt->is_leaf()) {
-			upward_pass_non_rec(reinterpret_cast<leaf*>(rt), R);
-			return;
-		}
-		inner* nd = reinterpret_cast<inner*>(rt);
-		upward_pass(nd->left, R);
-		upward_pass(nd->right, R);
-		if (nd->k1 != 0) {
-			binvector a(nd->left->k1), b(nd->right->k1), v(nd->k1);
-			for (unsigned ind : GrayCode(nd->k1 + nd->k2)) {
-				if (ind != -1) {
-					if (ind >= nd->k2) {
-						v.change(ind - nd->k2);
-					}
-					a ^= nd->G_hat[ind];
-					b ^= nd->G_tilda[ind];
-				}
-				nd->A[v] += nd->left->A[a] * nd->right->A[b];
-			}
-		}
-	}
-
-	void downward_pass(node* rt, std::vector<double>& L) const {
-		if (rt->is_leaf()) {
-			downward_pass_non_rec(reinterpret_cast<leaf*>(rt), L);
-			return;
-		}
-		inner* nd = reinterpret_cast<inner*>(rt);
-		binvector a(nd->left->k1), b(nd->right->k1);
-		if (nd->k1 == 0) {
-			for (unsigned ind : GrayCode(nd->k1 + nd->k2)) {
-				if (ind != -1) {
-					a ^= nd->G_hat[ind];
-					b ^= nd->G_tilda[ind];
-				}
-				nd->left->B[a] = nd->right->A[b];
-				nd->right->B[b] = nd->left->A[a];
-			}
-		} else {
-			binvector v(nd->k1);
-			for (unsigned ind : GrayCode(nd->k1 + nd->k2)) {
-				if (ind != -1) {
-					if (ind >= nd->k2) {
-						v.change(ind - nd->k2);
-					}
-					a ^= nd->G_hat[ind];
-					b ^= nd->G_tilda[ind];
-				}
-				nd->left->B[a] += nd->B[v] * nd->right->A[b];
-				nd->right->B[b] += nd->B[v] * nd->left->A[a];
-			}
-		}
-		downward_pass(nd->left, L);
-		downward_pass(nd->right, L);
-	}
-
-	void upward_pass_non_rec(leaf* nd, std::vector<double> const& R) const {
-		binvector v(nd->k1), c(nd->y - nd->x);
-		for (unsigned ind : GrayCode(nd->k1 + nd->k2)) {
-			if (ind != -1) {
-				if (ind >= nd->k2) {
-					v.change(ind - nd->k2);
-				}
-				c ^= nd->Gp[ind];
-			}
-			double T = F(c, R, nd->x, nd->y);
-			nd->A[v] += T;
-			for (int i = 0; i < nd->y - nd->x; i++) {
-				if (c[i]) {
-					nd->A1[i][v] += T;
-				} else {
-					nd->A0[i][v] += T;
-				}
-			}
-		}
-	}
-
-	void downward_pass_non_rec(leaf* nd, std::vector<double>& L) const {
-		int sz = nd->y - nd->x;
-		std::vector<double> P0(sz, 0.0), P1(sz, 0.0);
-		for (std::size_t v = 0; v < (1ull << nd->k1); v++) {
-			for (int i = 0; i < sz; i++) {
-				P0[i] += nd->A0[i][v] * nd->B[v];
-				P1[i] += nd->A1[i][v] * nd->B[v];
-			}
-		}
-
-		__log("P0 " << P0 << "\nP1 " << P1 << "\n");
-
-		for (int i = nd->x, j = 0; j < sz; i++, j++) {
-			if (P0[j] < EPS && P1[j] < EPS) {
-				L[i] = NAN;
-			} else if (P0[j] < EPS) {
-				L[i] = -INF;
-			} else if (P1[j] < EPS) {
-				L[i] = INF;
-			} else {
-				L[i] = log(P0[j] / P1[j]);
-			}
-		}
-	}
-
 public:
 	friend std::pair<int, int> simulate(RecursiveDecoder coder, double snr, int iter_cnt, int max_error) {
 		double sigma = sqrt(0.5 * pow(10.0, -snr / 10.0) * coder.length() / coder.dim());
-		coder.sigma2_2 = 2 * sigma * sigma;
-		std::normal_distribution norm(0.0, sigma);
+		std::normal_distribution<_Float64> norm(0.0, sigma);
 		int errr = 0, sim_cnt = 0;
 		while (errr < max_error && sim_cnt < iter_cnt) {
 			binvector x(coder.dim());
-			for (int t = 0; t < coder.dim(); t++) {
+			for (unsigned t = 0; t < coder.dim(); t++) {
 				x.set(t, rand() % 2);
 			}
 			binvector enc = coder.encode(x);
-			std::vector<double> y(coder.length());
 			double coef = 2.0f / (sigma * sigma);
-			for (int t = 0; t < coder.length(); t++) {
-				y[t] = ((enc[t] ? -1 : 1) + norm(gen));
+			std::vector<double> L_in(coder.length());
+			for (unsigned t = 0; t < coder.length(); t++) {
+				L_in[t] = coef * ((enc[t] ? -1 : 1) + norm(gen));
 			}
-			binvector dec = coder.decode(y);
+			std::vector<double> L_out = coder.decode_soft(L_in);
+			binvector dec(coder.length());
+			for (unsigned t = 0; t < coder.length(); t++) {
+				dec.set(t, L_out[t] < 0);
+			}
 			errr += (dec != enc);
 			sim_cnt++;
 		}
-		coder.sigma2_2 = 0;
 		return {errr, sim_cnt};
 	}
 
@@ -681,19 +820,10 @@ public:
 
 private:
 	unsigned n, k;
-	double sigma2_2;
-	std::vector<std::vector<int>> _split;
+	std::vector<double> p0, p1;
+	std::vector<std::vector<unsigned>> _split;
 	std::vector<binvector> G;
 	node* root;
-
-	double F(binvector const& c, std::vector<double> const& R, int x, int y) const {
-		double ans = 0;
-		for (int i = x, j = 0; i < y; i++, j++) {
-			ans += (R[i] - (c[j] ? -1 : 1)) * (R[i] - (c[j] ? -1 : 1));
-		}
-		ans = -ans / sigma2_2;
-		return exp(ans);
-	}
 };
 
 int main() {
@@ -713,7 +843,6 @@ int main() {
 	fin >> G;
 
 	RecursiveDecoder coder(G);
-	fout << CNT << std::endl;
 
 	std::string command;
 	bool skip = false;
@@ -736,19 +865,7 @@ int main() {
 			binvector x(coder.dim());
 			fin >> x;
 			fout << coder.encode(x);
-		} else if (command == "Decode") {
-			std::vector<double> y(coder.length());
-			fin >> y;
-			fout << coder.decode(y);
-		} else if (command == "DecodeSO") {
-			std::vector<double> y(coder.length());
-			bool c;
-			for (int i = 0; i < y.size(); i++) {
-				fin >> c;
-				y[i] = (c ? -INF : INF);
-			}
-			fout << coder.decode_soft(y);
-		} else if (command == "DecodeSISO") {
+		} else if (command == "Decode" || command == "DecodeSISO") {
 			std::vector<double> y(coder.length());
 			fin >> y;
 			fout << coder.decode_soft(y);
@@ -761,7 +878,9 @@ int main() {
 
 			#ifdef TEST
 			auto start = std::chrono::system_clock::now();
+			#ifdef CNTLOG
 			clear_cnt();
+			#endif
 			#endif
 
 			auto [errr, sim_cnt] = simulate(coder, snr, iter_cnt, max_error);
@@ -776,8 +895,8 @@ int main() {
 			#if defined(TEST) && defined(TIMELOG)
 			fout << " " << time_in_ms / 1000.0;
 			#endif
-			#if defined(TEST) && defined(LOG)
-			fout << " " << CNT;
+			#if defined(TEST) && defined(CNTLOG)
+			fout << " " << static_cast<double>(SUM_CNT + MUL_CNT) / sim_cnt;
 			#endif
 		} else {
 			fail(false, "main: incorrect command");

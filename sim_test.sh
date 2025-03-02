@@ -8,39 +8,22 @@ Simulate  2.0 100000 100
 Simulate  2.5 100000 100
 Simulate  3.0 100000 100
 Simulate  4.0 100000 100
-Simulate  5.0 100000 100" >> input.txt
+--Simulate  5.0 100000 100
+" >> input.txt
 g++ main.cpp -o sol.out
 ./sol.out
 rm sol.out
-p=""
 while read -r line; do
-    if [[ -z $p ]]; then
-        p="1"
-        continue
-    else
-        errr=`echo $line | grep -Eo "^\S+" | sed 's/\./,/'`
-        echo $errr
-    fi
+    errr=`echo $line | grep -Eo "^\S+" | sed 's/\./,/'`
+    echo $errr
 done < output.txt
 echo
-p=""
 while read -r line; do
-    if [[ -z $p ]]; then
-        p="1"
-        continue
-    else
-        time=`echo $line | grep -Eo " \S+ " | sed -e 's/\./,/; s/ //'`
-        echo $time
-    fi
+    time=`echo $line | grep -Eo " \S+ " | sed -e 's/\./,/; s/ //'`
+    echo $time
 done < output.txt
 echo
-p=""
 while read -r line; do
-    if [[ -z $p ]]; then
-        p="1"
-        continue
-    else
-        cnt=`echo $line | grep -Eo "\S+$" | sed 's/\./,/'`
-        echo $cnt
-    fi
+    cnt=`echo $line | grep -Eo "\S+$" | sed 's/\./,/'`
+    echo $cnt
 done < output.txt
