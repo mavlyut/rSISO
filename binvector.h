@@ -13,6 +13,11 @@
 #include <ratio>
 #include <vector>
 
+static std::size_t CNT_BIN = 0;
+void clear_cnt_bin() {
+	CNT_BIN = 0;
+}
+
 template <typename _int_t, std::size_t chunk_size>
 class binvector_ {
 	static inline constexpr _int_t __min(_int_t const& a, _int_t const& b) {
@@ -55,7 +60,7 @@ public:
 	}
 
 	void set(unsigned i, bool val) {
-		// CNT++;
+		CNT_BIN++;
 		if (val) {
 			coefs[i / chunk_size] |= (1ull << (i % chunk_size));
 		} else {
@@ -64,7 +69,7 @@ public:
 	}
 
 	void change(unsigned i) {
-		// CNT++;
+		CNT_BIN++;
 		coefs[i / chunk_size] ^= (1ull << (i % chunk_size));
 	}
 
@@ -84,7 +89,7 @@ public:
 	}
 
 	_int_t to_integer() const {
-		return coefs[0];
+		return coefs.size() > 0 ? coefs[0] : 0;
 	}
 
 	operator _int_t() const {
@@ -102,8 +107,8 @@ public:
 public:
 	binvector_& operator^=(binvector_ const& r) {
 		// fail(r.size() <= size(), "^=: invalid size");
+		CNT_BIN += r.coefs.size();
 		for (unsigned i = 0; i < r.coefs.size(); i++) {
-			// CNT++;
 			coefs[i] ^= r.coefs[i];
 		}
 		return *this;
