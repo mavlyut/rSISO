@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 
-#include "../../matrix.h"
+#include "../include/matrix.h"
 
 matrix generate_RM(int r, int m) {
     if (r == 0) {

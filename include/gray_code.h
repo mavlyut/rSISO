@@ -18,7 +18,7 @@ private:
         : std::numeric_limits<_digits_t>::max();
 
 public:
-    gray_code(unsigned);
+    gray_code(unsigned, bool with_zero = true);
 
     class gray_code_iterator : std::iterator<
                     std::input_iterator_tag,
@@ -30,7 +30,7 @@ public:
     friend struct gray_code;
 
     private:
-        explicit gray_code_iterator(unsigned, bool);
+        explicit gray_code_iterator(unsigned, bool with_zero, bool is_final);
 
     public:
         gray_code_iterator& operator++();
@@ -52,5 +52,6 @@ public:
     gray_code_iterator end() const;
 
 private:
+    bool with_zero;
     unsigned n;
 };

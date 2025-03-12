@@ -35,7 +35,7 @@
 *.pdf
 output
 _log*
-[^RP]*.txt
+[^RPe]*.txt
 _todo
 ___test.cpp
 __v*.cpp

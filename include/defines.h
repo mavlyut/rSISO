@@ -19,8 +19,6 @@
 static const _Float64 INF = INFINITY;
 static constexpr _Float64 COEF = M_2_SQRTPI * M_SQRT1_2 / 2;
 inline std::mt19937 gen(time(0));
-inline std::ofstream _log_time("_log_time");
-inline std::ofstream _log_out("_log_out");
 
 static const unsigned UNINIT = -1;
 static const unsigned chunk_size = 64;
@@ -38,12 +36,14 @@ typedef std::chrono::milliseconds ms;
 	__time_measure_with_msg("Instruction: \"" #line "\"", line)
 
 #if defined(TIMELOG) && !defined(TEST)
+inline std::ofstream _log_time("_log_time");
 #define time_measure(line) { __time_measure(line) }
 #else
 #define time_measure(line) line
 #endif
 
 #if defined(LOG) && !defined(TEST)
+inline std::ofstream _log_out("_log_out");
 #define __log(msg) _log_out << msg;
 #else
 #define __log(msg)

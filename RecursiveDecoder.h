@@ -449,7 +449,6 @@ private:
 			}
 		};
 
-
 		for (unsigned x = 0; x <= n; x++) {
 			for (unsigned y = x + 1; y <= n; y++) {
 				matrix Gp;
@@ -562,7 +561,7 @@ private:
 			#ifdef ENABLE_OPT_1
 			if (optimizationNo == 1) {
 				fail(k1 == 0 && Gp.size() == 1 && Gp[0].isOnes(), "incorrect pre-conditions (1)");
-				_log_out << "Simplify 1: " << x << " " << y << std::endl;
+				__log("Simplify 1: " << x << " " << y << std::endl);
 				return new leaf_simplify_1(x, y, Gp);
 			}
 			#endif
@@ -570,7 +569,7 @@ private:
 			#ifdef ENABLE_OPT_2
 			if (optimizationNo == 2) {
 				fail(k1 == 1 && Gp.size() == 1 && Gp[0].isOnes(), "incorrect pre-conditions (2)");
-				_log_out << "Simplify 2: " << x << " " << y << std::endl;
+				__log("Simplify 2: " << x << " " << y << std::endl);
 				return new leaf_simplify_2(x, y, Gp);
 			}
 			#endif
@@ -578,7 +577,7 @@ private:
 			#ifdef ENABLE_OPT_3
 			if (optimizationNo == 3) {
 				fail(y - x == 2 && Gp.size() == 2, "incorrect pre-conditions (3)");
-				_log_out << "Simplify 3: " << x << " " << y << std::endl;
+				__log("Simplify 3: " << x << " " << y << std::endl);
 				return new leaf_simplify_3(x, y, k1, Gp);
 			}
 			#endif
@@ -586,12 +585,12 @@ private:
 			#ifdef ENABLE_OPT_5
 			if (optimizationNo == 5) {
 				fail(y - x == k1, "incorrect pre-conditions (5)");
-				_log_out << "Simplify 5: " << x << " " << y << std::endl;
+				__log("Simplify 5: " << x << " " << y << std::endl);
 				return new leaf_simplify_5(x, y, Gp);
 			}
 			#endif
 
-			_log_out << "No simplify: " << x << " " << y << std::endl;
+			__log("No simplify: " << x << " " << y << std::endl);
 			return new leaf_no_simplify(x, y, k1, Gp);
 		}
 

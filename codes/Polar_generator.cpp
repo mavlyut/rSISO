@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "../../matrix.h"
+#include "../include/matrix.h"
 
 static inline matrix Arikan_kernel{binvector(2, 1), binvector(2, 3)};
 

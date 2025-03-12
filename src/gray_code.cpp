@@ -6,10 +6,10 @@
 #include "../include/defines.h"
 #include "../include/gray_code.h"
 
-gray_code::gray_code(unsigned n) : n(n) {}
+gray_code::gray_code(unsigned n, bool with_zero) : with_zero(with_zero), n(n) {}
 
-gray_code::gray_code_iterator::gray_code_iterator(unsigned n, bool is_final)
-    : n(n), change_bit(UNINIT), ind((n + chunk_size) / chunk_size) {
+gray_code::gray_code_iterator::gray_code_iterator(unsigned n, bool with_zero, bool is_final)
+    : n(n), change_bit(with_zero ? UNINIT : 0), ind((n + chunk_size) / chunk_size) {
     if (is_final) {
         ind[n / chunk_size] = (1 << (n % chunk_size));
     }
@@ -58,9 +58,9 @@ void gray_code::gray_code_iterator::next_vector() {
 }
 
 gray_code::gray_code_iterator gray_code::begin() const {
-    return gray_code_iterator(n, false);
+    return gray_code_iterator(n, with_zero, false);
 }
 
 gray_code::gray_code_iterator gray_code::end() const {
-    return gray_code_iterator(n, true);
+    return gray_code_iterator(n, with_zero, true);
 }
