@@ -13,13 +13,10 @@
 #include <ratio>
 #include <vector>
 
-static std::size_t CNT_BIN = 0;
-void clear_cnt_bin() {
-	CNT_BIN = 0;
-}
+#include "defines.h"
 
 template <typename _int_t, std::size_t chunk_size>
-class binvector_ {
+class __binvector {
 	static inline constexpr _int_t __min(_int_t const& a, _int_t const& b) {
 		return (a < b ? a : b);
 	}
@@ -30,23 +27,23 @@ class binvector_ {
 		: std::numeric_limits<_int_t>::max();
 
 public:
-	binvector_() = default;
+	__binvector() = default;
 
-	binvector_(unsigned m) : binvector_(m, 0) {}
+	__binvector(unsigned m) : __binvector(m, 0) {}
 
-	explicit binvector_(unsigned m, _int_t x) : sz(m), coefs((m + chunk_size - 1) / chunk_size, 0) {
+	explicit __binvector(unsigned m, _int_t x) : sz(m), coefs((m + chunk_size - 1) / chunk_size, 0) {
 		for (unsigned i = 0; i < m; i++, x >>= 1) {
 			set(i, x & 1);
 		}
 	}
 
-	static binvector_ getEmpty(int m) {
-		return binvector_(m);
+	static __binvector getEmpty(int m) {
+		return __binvector(m);
 	}
 
-	binvector_(binvector_ const& other) : binvector_(other.sz, other.coefs) {}
+	__binvector(__binvector const& other) : __binvector(other.sz, other.coefs) {}
 
-	binvector_& operator=(binvector_ const& other) {
+	__binvector& operator=(__binvector const& other) {
 		sz = other.sz;
 		coefs = other.coefs;
 		return *this;
@@ -73,11 +70,11 @@ public:
 		coefs[i / chunk_size] ^= (1ull << (i % chunk_size));
 	}
 
-	binvector_ subvector(unsigned x, unsigned y) const {
+	__binvector subvector(unsigned x, unsigned y) const {
 		if (x >= y) {
-			return binvector_(0);
+			return __binvector(0);
 		}
-		binvector_ ans(y - x);
+		__binvector ans(y - x);
 		for (unsigned i = 0; i < ans.size(); i++) {
 			ans.set(i, operator[](i + x));
 		}
@@ -105,8 +102,8 @@ public:
 	}
 
 public:
-	binvector_& operator^=(binvector_ const& r) {
-		// fail(r.size() <= size(), "^=: invalid size");
+	__binvector& operator^=(__binvector const& r) {
+		fail(r.size() <= size(), "^=: invalid size");
 		CNT_BIN += r.coefs.size();
 		for (unsigned i = 0; i < r.coefs.size(); i++) {
 			coefs[i] ^= r.coefs[i];
@@ -114,12 +111,12 @@ public:
 		return *this;
 	}
 
-	friend binvector_ operator^(binvector_ a, binvector_ const& b) {
+	friend __binvector operator^(__binvector a, __binvector const& b) {
 		return a ^= b;
 	}
 
 public:
-	friend std::istream& operator>>(std::istream& in, binvector_& a) {
+	friend std::istream& operator>>(std::istream& in, __binvector& a) {
 		int b;
 		for (unsigned i = 0; i < a.size(); i++) {
 			in >> b;
@@ -129,7 +126,7 @@ public:
 	}
 
 public:
-	friend std::ostream& operator<<(std::ostream& out, binvector_ const& a) {
+	friend std::ostream& operator<<(std::ostream& out, __binvector const& a) {
 		for (unsigned i = 0; i < a.size(); i++) {
 			if (i != 0) {
 				out << ' ';
@@ -140,7 +137,7 @@ public:
 	}
 
 public:
-	friend bool operator<(binvector_ const& a, binvector_ const& b) {
+	friend bool operator<(__binvector const& a, __binvector const& b) {
 		if (a.size() != b.size()) {
 			return a.size() < b.size();
 		}
@@ -155,23 +152,23 @@ public:
 		return false;
 	}
 
-	friend bool operator>(binvector_ const& a, binvector_ const& b) {
+	friend bool operator>(__binvector const& a, __binvector const& b) {
 		return b < a;
 	}
 
-	friend bool operator<=(binvector_ const& a, binvector_ const& b) {
+	friend bool operator<=(__binvector const& a, __binvector const& b) {
 		return !(a > b);
 	}
 
-	friend bool operator>=(binvector_ const& a, binvector_ const& b) {
+	friend bool operator>=(__binvector const& a, __binvector const& b) {
 		return !(a < b);
 	}
 
-	friend bool operator==(binvector_ const& a, binvector_ const& b) {
+	friend bool operator==(__binvector const& a, __binvector const& b) {
 		return a.sz == b.sz && a.coefs == b.coefs;
 	}
 
-	friend bool operator!=(binvector_ const& a, binvector_ const& b) {
+	friend bool operator!=(__binvector const& a, __binvector const& b) {
 		return !(a == b);
 	}
 
@@ -197,20 +194,20 @@ private:
 	unsigned sz;
 	std::vector<_int_t> coefs;
 
-	explicit binvector_(unsigned m, std::vector<_int_t> const& coefs) : sz(m), coefs(coefs) {}
+	explicit __binvector(unsigned m, std::vector<_int_t> const& coefs) : sz(m), coefs(coefs) {}
 
-	explicit binvector_(unsigned m, std::vector<_int_t> const& coefs, bool) : sz(m), coefs(coefs) {
+	explicit __binvector(unsigned m, std::vector<_int_t> const& coefs, bool) : sz(m), coefs(coefs) {
 		while (!operator[](sz - 1)) {
 			sz--;
 		}
 	}
 
-	friend struct std::hash<binvector_>;
+	friend struct std::hash<__binvector>;
 };
 
 template <typename T, std::size_t N>
-struct std::hash<binvector_<T, N>> {
-	std::size_t operator()(binvector_<T, N> const& p) const noexcept {
+struct std::hash<__binvector<T, N>> {
+	std::size_t operator()(__binvector<T, N> const& p) const noexcept {
 		auto int_hasher = std::hash<T>{};
 		std::size_t ans = N * int_hasher(p.sz);
 		for (T const& x : p.coefs) {
@@ -220,4 +217,4 @@ struct std::hash<binvector_<T, N>> {
 	}
 };
 
-using binvector = binvector_<std::size_t, 32>;
+using binvector = __binvector<std::size_t, 32>;
