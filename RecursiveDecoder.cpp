@@ -22,36 +22,6 @@
 #define double __count_type<_Float64>
 #endif
 
-template <typename T>
-std::ostream& operator<<(std::ostream& out, std::vector<T> const& a) {
-	for (unsigned i = 0; i < a.size(); i++) {
-		if (i != 0) {
-			out << ' ';
-		}
-		out << a[i];
-	}
-	return out;
-}
-
-template <typename T>
-std::ostream& operator<<(std::ostream& out, std::vector<std::vector<T>> const& a) {
-	for (unsigned i = 0; i < a.size(); i++) {
-		if (i != 0) {
-			out << "\n\t";
-		}
-		out << a[i];
-	}
-	return out;
-}
-
-template <typename T>
-std::istream& operator>>(std::istream& in, std::vector<T>& a) {
-	for (T& i : a) {
-		in >> i;
-	}
-	return in;
-}
-
 class RecursiveDecoder {
 public:
 	RecursiveDecoder(matrix const& _G) : G(_G), G_enc(G) {

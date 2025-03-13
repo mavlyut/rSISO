@@ -78,7 +78,7 @@ bool lin_indep(matrix const& M, binvector const& a) {
 
 std::ostream& operator<<(std::ostream& out, matrix const& a) {
 	for (binvector const& row : a) {
-			for (unsigned i = 0; i < row.size(); i++) {
+		for (unsigned i = 0; i < row.size(); i++) {
 			if (i != 0) {
 				out << ' ';
 			}

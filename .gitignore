@@ -35,10 +35,12 @@
 *.pdf
 output
 _log*
-[^RPe]*.txt
+[^RPeL]*.txt
 _todo
 ___test.cpp
 __v*.cpp
 viterbi.cpp
 *.dot
 previous_versions
+Viterbi.cpp
+BKJR.cpp

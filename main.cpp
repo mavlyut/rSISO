@@ -1,20 +1,4 @@
-#include <algorithm>
-#include <array>
-#include <chrono>
-#include <cmath>
-#include <ctime>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <iomanip>
-#include <map>
-#include <queue>
-#include <random>
-#include <set>
-#include <unordered_map>
-#include <vector>
-
-#include "RecursiveDecoder.h"
+#include "RecursiveDecoder.cpp"
 
 int main() {
 	srand(time(NULL));
