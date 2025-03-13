@@ -39,7 +39,7 @@ matrix generate_RM(int r, int m) {
 int main() {
     matrix G = generate_RM(2, 6);
     int k = G.size(), n = G.front().size();
-    std::ofstream fout("../RM_" + std::to_string(n) + "_" + std::to_string(k) + ".txt");
+    std::ofstream fout("RM_" + std::to_string(n) + "_" + std::to_string(k) + ".txt");
     fout << n << " " << k << "\n" << G;
     std::cout << n << " " << k << "\n";
 }

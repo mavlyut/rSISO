@@ -39,17 +39,31 @@ matrix generate_Polar(int m, std::size_t k, double p, matrix const& Kernel) {
     std::sort(Z_paired.begin(), Z_paired.end());
     double threshold = Z_paired[k - 1].first;
     matrix G;
+    std::vector<std::size_t> revs(1 << m);
+    for (std::size_t i = 0; i < revs.size(); i++) {
+        std::size_t rev_i = 0;
+        for (int j = 0; j < m; j++) {
+            if ((i >> (m - 1 - j)) & 1) {
+                rev_i |= (1 << j);
+            }
+        }
+        revs[i] = rev_i;
+    }
     for (std::size_t j = 0; j < Z.size() && G.size() < k; j++) {
         if (Z[j] <= threshold) {
-            G.push_back(A[j]);
+            binvector row(A[j].size());
+            for (std::size_t c = 0; c < row.size(); c++) {
+                row.set(c, A[j][revs[c]]);
+            }
+            G.push_back(row);
         }
     }
     return G;
 }
 
 int main() {
-    int m = 6, k = 32;
-    std::ofstream fout("../Polar_" + std::to_string(1ull << m) + "_" + std::to_string(k) + ".txt");
+    int m = 8, k = 239;
+    std::ofstream fout("Polar_" + std::to_string(1ull << m) + "_" + std::to_string(k) + ".txt");
     fout << (1ull << m) << " " << k << "\n"
          << generate_Polar(m, k, 0.5, Arikan_kernel);
 }
