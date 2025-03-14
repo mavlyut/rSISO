@@ -63,7 +63,7 @@ std::vector<binvector> getParityMatrix(std::vector<binvector> a) {
 
 class TrustPropagationDecoder {
 public:
-    TrustPropagationDecoder(std::vector<binvector> const& H) : n(H[0].size()), G(getParityMatrix(H)) {
+    TrustPropagationDecoder(std::vector<binvector> const& H) : n(H[0].size()), m(H.size()), G(getParityMatrix(H)) {
         C.resize(n), V.resize(m);
         for (int j = 0; j < m; j++) {
             for (int i = 0; i < n; i++) {
@@ -173,8 +173,9 @@ private:
         return out << "\n";
     }
 
-private:
+public:
     void printGraph(std::ofstream fgraph, binvector const& y) const {
+        bool empty = (y.size() == 0);
         fgraph << "digraph G {\n";
         fgraph << "\tranksep=1\n\n";
         fgraph << "\t subgraph checks {\n";
@@ -186,7 +187,8 @@ private:
             for (int i : V[j]) {
                 bit ^= y[i];
             }
-            fgraph << "\t\tc" << j << " [shape=box, label=\"\", color=" << (bit ? "red" : "green") << "]" << "\n";
+            fgraph << "\t\tc" << j << " [shape=box, label=\"\", color="
+                   << (empty ? "black" : (bit ? "red" : "green")) << "]" << "\n";
             fgraph << "\t\t";
             if (j > 0) {
                 fgraph << "c" << j - 1;
@@ -201,7 +203,8 @@ private:
         fgraph << "\t\trank=same\n";
         fgraph << "\t\trankV [style=invisible]\n";
         for (int i = 0; i < n; i++) {
-            fgraph << "\t\tv" << i << " [shape=circle, label=\"" << (y[i] ? '1' : '0') << "\"]" << "\n";
+            fgraph << "\t\tv" << i << " [shape=circle, label=\""
+                   << (empty ? "" : (y[i] ? "1" : "0")) << "\"]" << "\n";
             fgraph << "\t\t";
             if (i > 0) {
                 fgraph << "v" << i - 1;
@@ -231,7 +234,7 @@ public:
 
 private:
     int n, m;
-    const int MAX_ITER_COUNT = 50;
+    const int MAX_ITER_COUNT = 10;
     std::vector<std::vector<int>> C, V;
     std::vector<binvector> G;
 };
@@ -241,32 +244,18 @@ int main() {
     std::ifstream fin("input.txt");
     std::ofstream fout("output.txt");
 
-    // int n, m, z;
-    // fin >> n >> m >> z >> z;
-    // std::vector<binvector> H(m, binvector(n));
-    // for (int i = 0; i < n; i++) {
-    //     int w;
-    //     fin >> w;
-    //     for (int t = 0; t < w; t++) {
-    //         int j;
-    //         fin >> j;
-    //         H[j].set(i, true);
-    //     }
-    // }
-    // for (int j = 0; j < m; j++) {
-    //     int w;
-    //     fin >> w;
-    //     for (int t = 0; t < w; t++) {
-    //         int i;
-    //         fin >> i;
-    //         fail(H[j][i], "read: " + std::to_string(j) + " " + std::to_string(i));
-    //     }
-    // }
-
     int n, m;
     fin >> n >> m;
     std::vector<binvector> H(m, binvector(n));
-    fin >> H;
+    for (int j = 0; j < m; j++) {
+        int w;
+        fin >> w;
+        for (int t = 0; t < w; t++) {
+            int i;
+            fin >> i;
+            H[j].set(i, true);
+        }
+    }
 
     TrustPropagationDecoder coder(H);
     fout << coder.length() << " " << coder.dim() << std::endl;
@@ -289,7 +278,6 @@ int main() {
             fail(max_error >= 0, "simulate: max_error must be non-negative integer");
 
             double sigma = sqrt(0.5 * pow(10.0, -snr / 10.0) * coder.length() / coder.dim());
-            std::cout << sigma << std::endl;
             std::normal_distribution norm(0.0, sigma);
             int errr = 0, sim_cnt = 0;
             while (errr < max_error && sim_cnt < iter_cnt) {
@@ -300,7 +288,7 @@ int main() {
                 binvector enc = coder.encode(x);
 				std::vector<double> y(coder.length());
                 for (int t = 0; t < coder.length(); t++) {
-					y[t] = (enc[t] ? -1 : 1) + norm(gen);
+					y[t] = ((enc[t] ? -1 : 1) + norm(gen)) * 2 / sigma / sigma;
                 }
                 std::vector<double> L = coder.decode(y);
                 binvector dec(n);
@@ -310,7 +298,7 @@ int main() {
                 errr += (dec != enc);
                 sim_cnt++;
             }
-            fout << errr << " " << sim_cnt;
+            fout << errr << " " << sim_cnt << " " << (errr + 0.0) / sim_cnt;
         } else {
             fail(false, "main: unknown command");
         }

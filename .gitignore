@@ -35,7 +35,7 @@
 *.pdf
 output
 _log*
-[^RPeL]*.txt
+[^RPe]*.txt
 _todo
 ___test.cpp
 __v*.cpp
@@ -44,3 +44,6 @@ viterbi.cpp
 previous_versions
 Viterbi.cpp
 BKJR.cpp
+802.ldpc
+codes/LDPC_*
+codes/LDPC_generator.cpp
