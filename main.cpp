@@ -1,4 +1,4 @@
-#include "RecursiveDecoder.cpp"
+#include "include/recursive_decoder.h"
 
 int main() {
 	srand(time(NULL));
@@ -16,7 +16,7 @@ int main() {
 	std::vector<binvector> G(k, binvector(n));
 	fin >> G;
 
-	RecursiveDecoder coder(G);
+	recursive_decoder coder(G);
 
 	#ifdef PRINT_SECTION_TREE
 	coder.printTree("Sectionalization.dot");
@@ -67,7 +67,7 @@ int main() {
 			#endif
 			#endif
 
-			auto [errr, sim_cnt] = simulate(coder, snr, iter_cnt, max_error);
+			auto [errr, sim_cnt] = coder.simulate(snr, iter_cnt, max_error);
 
 			#ifdef TEST
 			auto end = std::chrono::system_clock::now();
