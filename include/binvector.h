@@ -1,4 +1,6 @@
-#pragma once
+#ifndef BINVECTOR_H
+#define BINVECTOR_H
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -218,3 +220,5 @@ struct std::hash<__binvector<T, N>> {
 };
 
 using binvector = __binvector<std::size_t, 32>;
+
+#endif // BINVECTOR_H

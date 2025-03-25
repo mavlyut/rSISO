@@ -1,6 +1,9 @@
+#ifndef RECURSIVE_DECODER_H
+#define RECURSIVE_DECODER_H
+
 #include "decoder.h"
 
-class recursive_decoder : public soft_decoder {
+class recursive_decoder : public linear_soft_decoder {
 public:
     recursive_decoder(matrix const&);
 
@@ -125,3 +128,5 @@ private:
     node* sectionalization();
     node* rec_build_section_tree(unsigned x, unsigned y);
 };
+
+#endif // RECURSIVE_DECODER_H

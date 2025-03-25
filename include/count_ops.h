@@ -1,3 +1,6 @@
+#ifndef COUNT_OPS_H
+#define COUNT_OPS_H
+
 #include <istream>
 #include <ostream>
 
@@ -232,3 +235,5 @@ struct __count_type {
 private:
 	__type x;
 };
+
+#endif // COUNT_OPS_H

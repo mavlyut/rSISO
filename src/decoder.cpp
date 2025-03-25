@@ -1,17 +1,12 @@
 #include "../include/decoder.h"
 #include "../include/defines.h"
 
-decoder::decoder(matrix const& G) : n(G.front().size()), k(G.size()), G(G) {}
+binvector decoder::encode(binvector const&) const {
+    throw std::runtime_error("Not implemented");
+}
 
-binvector decoder::encode(binvector const& c) const {
-    fail(c.size() == dim(), "encode: incorrect input dim");
-    binvector ans(length());
-    for (unsigned i = 0; i < dim(); i++) {
-        if (c[i]) {
-            ans ^= G[i];
-        }
-    }
-    return ans;
+binvector decoder::decode(std::vector<double> const&) {
+    throw std::runtime_error("Not implemented");
 }
 
 std::pair<unsigned, unsigned> decoder::simulate(_Float64 snr, unsigned iter_cnt, unsigned max_error) {
@@ -37,15 +32,39 @@ std::pair<unsigned, unsigned> decoder::simulate(_Float64 snr, unsigned iter_cnt,
 }
 
 unsigned decoder::length() const {
-    return n;
+    throw std::runtime_error("Not implemented");
 }
 
 unsigned decoder::dim() const {
+    throw std::runtime_error("Not implemented");
+}
+
+linear_decoder::linear_decoder(matrix const& G) : n(G.front().size()), k(G.size()), G(G) {}
+
+binvector linear_decoder::encode(binvector const& c) const {
+    fail(c.size() == dim(), "encode: incorrect input dim");
+    binvector ans(length());
+    for (unsigned i = 0; i < dim(); i++) {
+        if (c[i]) {
+            ans ^= G[i];
+        }
+    }
+    return ans;
+}
+
+unsigned linear_decoder::length() const {
+    return n;
+}
+
+unsigned linear_decoder::dim() const {
     return k;
 }
 
+linear_soft_decoder::linear_soft_decoder(matrix const& G) : linear_decoder(G) {}
 
-soft_decoder::soft_decoder(matrix const& G) : decoder(G) {}
+std::vector<double> soft_decoder::decode_soft(std::vector<double> const&) {
+    throw std::runtime_error("Not implemented");
+}
 
 binvector soft_decoder::decode(std::vector<double> const& L_in) {
     std::vector<double> L_out = decode_soft(L_in);

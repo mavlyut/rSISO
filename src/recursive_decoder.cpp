@@ -1,7 +1,7 @@
 #include "../include/gray_code.h"
 #include "../include/recursive_decoder.h"
 
-recursive_decoder::recursive_decoder(matrix const& _G) : soft_decoder(_G), G(_G) {
+recursive_decoder::recursive_decoder(matrix const& _G) : linear_soft_decoder(_G), G(_G) {
 	time_measure(minimal_span_form(G));
 
 	__log("MSF:\n" << G << "\n")

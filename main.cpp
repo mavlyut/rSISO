@@ -1,3 +1,4 @@
+#include "include/trust_propagation_decoder.h"
 #include "include/recursive_decoder.h"
 
 int main() {
@@ -11,12 +12,20 @@ int main() {
 #endif
 	// fout << std::scientific;
 
-	int n, k;
-	fin >> n >> k;
-	std::vector<binvector> G(k, binvector(n));
-	fin >> G;
+	int n, m;
+    fin >> n >> m;
+    std::vector<binvector> H(m, binvector(n));
+    for (int j = 0; j < m; j++) {
+        int w;
+        fin >> w;
+        for (int t = 0; t < w; t++) {
+            int i;
+            fin >> i;
+            H[j].set(i, true);
+        }
+    }
 
-	recursive_decoder coder(G);
+	trust_propagation_decoder coder(H);
 
 	#ifdef PRINT_SECTION_TREE
 	coder.printTree("Sectionalization.dot");
@@ -48,7 +57,7 @@ int main() {
 			binvector x(coder.dim());
 			fin >> x;
 			fout << coder.encode(x);
-		} else if (command == "Decode" || command == "DecodeSISO") {
+		} else if (command == "Decode") {
 			std::vector<_Float64> y(coder.length());
 			fin >> y;
 			fout << coder.decode_soft(y);

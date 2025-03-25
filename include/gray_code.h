@@ -1,3 +1,6 @@
+#ifndef GRAY_CODE_H
+#define GRAY_CODE_H
+
 #include <cstdint>
 #include <iterator>
 #include <vector>
@@ -55,3 +58,5 @@ private:
     bool with_zero;
     unsigned n;
 };
+
+#endif // GRAY_CODE_H
