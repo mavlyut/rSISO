@@ -49,12 +49,9 @@ inline std::ofstream _log_out("_log_out");
 #define __log(msg)
 #endif
 
-#define fail(b, msg)						\
-	if (!(b)) { 							\
-		std::ofstream fout("output.txt");	\
-		fout << "FAILURE: " << msg << "\n";	\
-		fout.close();						\
-		throw 2;							\
+#define fail(b, msg)							\
+	if (!(b)) { 								\
+		__log("FAILURE: " << msg << std::endl);	\
 	}
 
 static std::size_t SUM_CNT;

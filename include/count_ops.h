@@ -236,4 +236,6 @@ private:
 	__type x;
 };
 
+#define double __count_type<double>
+
 #endif // COUNT_OPS_H

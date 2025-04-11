@@ -3,8 +3,7 @@
 
 #include "decoder.h"
 
-class recursive_decoder : public linear_soft_decoder {
-public:
+struct recursive_decoder : public linear_soft_decoder {
     recursive_decoder(matrix const&);
 
 private:
@@ -125,7 +124,7 @@ private:
 	std::vector<binvector> G;
 	node* root;
 
-    node* sectionalization();
+    void sectionalization();
     node* rec_build_section_tree(unsigned x, unsigned y);
 };
 

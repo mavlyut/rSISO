@@ -3,12 +3,10 @@
 
 #include "decoder.h"
 
-class trust_propagation_decoder : public linear_soft_decoder {
-public:
+struct trust_propagation_decoder : public linear_soft_decoder {
     trust_propagation_decoder(matrix const& H);
 
     std::vector<double> decode_soft(std::vector<double> const&) override;
-
     void print_graph(std::ofstream, binvector const&) const;
 
 private:

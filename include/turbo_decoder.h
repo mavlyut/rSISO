@@ -3,20 +3,16 @@
 
 #include "decoder.h"
 
-class turbo_decoder : public soft_decoder {
-public:
-    turbo_decoder(soft_decoder const&, soft_decoder const&);
+struct turbo_decoder : public soft_decoder {
+    turbo_decoder(soft_decoder*, soft_decoder*);
 
-    binvector encode(binvector const&) const override;
-    std::vector<double> soft_decode(std::vector<double> const&);
-
-    unsigned length() const override;
-    unsigned dim() const override;
+    binvector encode(binvector const& c) const override;
+    std::vector<double> decode_soft(std::vector<double> const&) override;
 
 private:
-    static const unsigned ITER_CNT = 10;
     unsigned n1, n2, k1, k2;
-    soft_decoder dec_row, dec_col;
+    soft_decoder *dec_row, *dec_col;
+    static const unsigned ITER_CNT = 10;
 };
 
 #endif // TURBO_DECODER_H

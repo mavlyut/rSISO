@@ -10,10 +10,15 @@ recursive_decoder::recursive_decoder(matrix const& _G) : linear_soft_decoder(_G)
 	p1.resize(n);
 	_split = std::vector(n + 1, std::vector<unsigned>(n + 1, UNINIT));
 	_ctor = std::vector(n + 1, std::vector<unsigned>(n + 1, 0));
-	time_measure(root = sectionalization());
+	if (k > 1) {
+		time_measure(sectionalization());
+		time_measure(root = rec_build_section_tree(0, n));
+	} else {
+		root = new leaf_simplify_2(0, n, G);
+	}
 }
 
-recursive_decoder::node* recursive_decoder::sectionalization() {
+void recursive_decoder::sectionalization() {
 	std::vector<std::vector<unsigned>> _Gp_size(n + 1, std::vector<unsigned>(n + 1, 0));
 	std::vector<std::vector<unsigned>> _Gs_size(n + 1, std::vector<unsigned>(n + 1, 0));
 	std::vector<std::vector<std::vector<std::size_t>>> phi_u_c(n + 1, std::vector<std::vector<std::size_t>>(n + 1, std::vector<std::size_t>(n + 1, UNINIT)));
@@ -116,8 +121,6 @@ recursive_decoder::node* recursive_decoder::sectionalization() {
 
 	__log("Gp_sz:  " << _Gp_size << "\nGs_sz:  " << _Gs_size << "\n");
 	__log("split: " << _split << "\n");
-
-	return rec_build_section_tree(0, n);
 }
 
 recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, unsigned y) {
@@ -276,7 +279,7 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 
 std::vector<double> recursive_decoder::decode_soft(std::vector<_Float64> const& L_in) {
 	for (unsigned i = 0; i < n; i++) {
-		_Float64 L_exp = exp(L_in[i]);
+		_Float64 L_exp = exp(truncate(L_in[i])); // FIXED: + truncate
 		_Float64 z = 1.0 + L_exp;
 		p0[i] = L_exp / z;
 		p1[i] = 1.0 / z;
@@ -335,22 +338,23 @@ double recursive_decoder::leaf::F(binvector const& c, std::vector<double> const&
 }
 
 double recursive_decoder::leaf::LLR(double M0, double M1) const {
-	if (M0 < EPS && M1 < EPS) {
-		return NAN;
-	} else if (M0 < EPS) {
-		return -INF;
-	} else if (M1 < EPS) {
-		return INF;
-	} else {
-		return log(M0 / M1);
-	}
+	// if (M0 < EPS && M1 < EPS) {
+	// 	// __log("Leaf, LLR: nan" << std::endl);
+	// 	return NAN;
+	// } else if (M0 < EPS) {
+	// 	// __log("Leaf, LLR: -inf" << std::endl);
+	// 	return -INF;
+	// } else if (M1 < EPS) {
+	// 	// __log("Leaf, LLR: inf" << std::endl);
+	// 	return INF;
+	// }
+	return truncate(log(M0 / M1));
 }
 
 void recursive_decoder::leaf::__print(std::ostream&) const {}
 
 recursive_decoder::leaf_no_simplify::leaf_no_simplify(unsigned x, unsigned y, unsigned k1, matrix const& Gp)
-	: leaf(x, y, k1, Gp)
-	, A1(y - x, std::vector<double>(1ull << k1, I)) {}
+	: leaf(x, y, k1, Gp), A1(y - x, std::vector<double>(1ull << k1, I)) {}
 
 void recursive_decoder::leaf_no_simplify::__clear() {
 	for (auto& i : A1) {

@@ -43,7 +43,7 @@ viterbi.cpp
 *.dot
 previous_versions
 Viterbi.cpp
-BKJR.cpp
+BKJR*
 802.ldpc
 codes/LDPC_*
 codes/LDPC_generator.cpp

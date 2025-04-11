@@ -6,5 +6,5 @@ void clear_cnt() {
 }
 
 void clear_cnt_bin() {
-	CNT_BIN = 0;
+	CNT_BIN = 0ull;
 }

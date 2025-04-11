@@ -1,5 +1,7 @@
-#include "include/trust_propagation_decoder.h"
+// #include "include/trust_propagation_decoder.h"
 #include "include/recursive_decoder.h"
+#include "include/turbo_decoder.h"
+#include "include/plotkin_construction_decoder.h"
 
 int main() {
 	srand(time(NULL));
@@ -12,24 +14,25 @@ int main() {
 #endif
 	// fout << std::scientific;
 
-	int n, m;
-    fin >> n >> m;
-    std::vector<binvector> H(m, binvector(n));
-    for (int j = 0; j < m; j++) {
-        int w;
-        fin >> w;
-        for (int t = 0; t < w; t++) {
-            int i;
-            fin >> i;
-            H[j].set(i, true);
-        }
-    }
+	// int n, k1, k2;
+	// fin >> n >> k1 >> k2;
+	// matrix G1(k1, binvector(n));
+	// matrix G2(k2, binvector(n));
+	// fin >> G1 >> G2;
+	// recursive_decoder* rd1 = new recursive_decoder(G1);
+	// recursive_decoder* rd2 = new recursive_decoder(G2);
 
-	trust_propagation_decoder coder(H);
+	// plotkin_construction_decoder coder(rd2, rd1);
 
-	#ifdef PRINT_SECTION_TREE
-	coder.printTree("Sectionalization.dot");
-	#endif
+	int n, k;
+	fin >> n >> k;
+	matrix G(k, binvector(n));
+	fin >> G;
+	recursive_decoder coder(G);
+
+	// #ifdef PRINT_SECTION_TREE
+	// coder.printTree("Sectionalization.dot");
+	// #endif
 
 	#ifdef INIT_COUNTS
 	std::cout << "Init: " << CNT_BIN << "\n";
@@ -76,28 +79,25 @@ int main() {
 			#endif
 			#endif
 
-			auto [errr, sim_cnt] = coder.simulate(snr, iter_cnt, max_error);
+			auto [fer, ber] = coder.simulate(snr, iter_cnt, max_error);
 
 			#ifdef TEST
 			auto end = std::chrono::system_clock::now();
 			auto time_in_ms = std::chrono::duration_cast<ms>(end - start).count();
-			#endif
-			#ifdef TEST
-			fout << (errr + 0.0) / sim_cnt;
+			fout << "Snr = " << snr << "; FER = " << fer << "; BER = " << ber;
 			#endif
 			#if defined(TEST) && defined(TIMELOG)
-			fout << " " << time_in_ms / 1000.0;
+			fout << "; time = " << time_in_ms / 1000.0 << "s";
 			#endif
 			#if defined(CNTLOG)
 			fout << SUM_CNT << " " << MUL_CNT << " " << CNT_BIN;
 			#endif
 		} else {
 			fail(false, "main: incorrect command");
+			continue;
 		}
 		fout << std::endl;
 	}
 
-	#ifdef TEST
 	std::cout << "FINISH\n";
-	#endif
 }
