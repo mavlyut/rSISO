@@ -23,13 +23,14 @@ binvector turbo_decoder::encode(binvector const& c) const {
     for (unsigned j = 0; j < n1; j++) {
         binvector row = dec_col->encode(enc1t[j]);
         for (unsigned i = 0; i < n2; i++) {
-            ans.set(j * n2 + i, row[i]);
+            ans.set(i * n1 + j, row[i]);
         }
     }
     __log("Turbo.encoded: " << ans << std::endl);
     return ans;
 }
 
+const unsigned turbo_decoder::ITER_CNT = 4;
 std::vector<double> turbo_decoder::decode_soft(std::vector<double> const& L0) {
     fail(L0.size() == length(), "turbo, decode: incorrect dim");
     __log("Turbo.decode: " << L0 << std::endl);
@@ -37,15 +38,19 @@ std::vector<double> turbo_decoder::decode_soft(std::vector<double> const& L0) {
     std::vector<double> L(L0);
     for (unsigned cnt = 0; cnt < ITER_CNT; cnt++) {
         for (unsigned i = 0; i < n1; i++) {
-            auto col = dec_col->decode_soft(std::vector(L.begin() + i * n2, L.begin() + (i + 1) * n2));
+            std::vector<double> colL(n2);
             for (unsigned j = 0; j < n2; j++) {
-                dec2t[j][i] = col[j];
+                colL[j] = L[j * n1 + i];
+            }
+            auto colDec = dec_col->decode_soft(colL);
+            for (unsigned j = 0; j < n2; j++) {
+                dec2t[j][i] = colDec[j];
             }
         }
         for (unsigned j = 0; j < n2; j++) {
             auto row = dec_row->decode_soft(dec2t[j]);
             for (unsigned i = 0; i < n1; i++) {
-                L[i * n1 + j] = row[i];
+                L[j * n1 + i] = row[i];
             }
         }
         __log("Turbo.decoded, iter=" << cnt + 1 << ": " << L << std::endl);

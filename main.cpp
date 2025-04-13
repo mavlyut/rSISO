@@ -22,13 +22,13 @@ int main() {
 	// recursive_decoder* rd1 = new recursive_decoder(G1);
 	// recursive_decoder* rd2 = new recursive_decoder(G2);
 
-	// plotkin_construction_decoder coder(rd2, rd1);
-
 	int n, k;
 	fin >> n >> k;
 	matrix G(k, binvector(n));
 	fin >> G;
-	recursive_decoder coder(G);
+	recursive_decoder* rd = new recursive_decoder(G);
+
+	turbo_decoder coder(rd, rd);
 
 	// #ifdef PRINT_SECTION_TREE
 	// coder.printTree("Sectionalization.dot");
