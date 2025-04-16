@@ -12,7 +12,6 @@ private:
         node(unsigned x, unsigned y, unsigned k1, unsigned k2, unsigned k3, matrix const& Gp);
 
     public:
-        void clear();
         void print(std::ostream& out) const;
         std::string getName() const;
 
@@ -27,7 +26,6 @@ private:
 
 	protected:
 		inline static const double I = 0;
-		virtual void __clear() = 0;
 		virtual void __print(std::ostream&) const = 0;
     };
 
@@ -46,7 +44,6 @@ private:
     protected:
 		std::vector<std::vector<double>> A1;
 
-		void __clear() override;
         void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
 		void downward_pass(std::vector<double>& L) const override;
     };
@@ -58,7 +55,6 @@ private:
     protected:
 		double ext_l;
 
-		void __clear() override;
         void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
    		void downward_pass(std::vector<double>& L) const override;
 	};
@@ -69,7 +65,6 @@ private:
 		leaf_simplify_2(unsigned x, unsigned y, matrix const& Gp);
 
     protected:
-		void __clear() override;
 		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
 		void downward_pass(std::vector<double>& L) const override;
 	};
@@ -82,7 +77,6 @@ private:
     protected:
 		double Phi00, Phi10, Phi01, Phi11;
 
-		void __clear() override;
 		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
 		void downward_pass(std::vector<double>& L) const override;
 	};
@@ -93,7 +87,6 @@ private:
 		leaf_simplify_5(unsigned x, unsigned y, matrix const& Gp);
 
     protected:
-		void __clear() override;
 		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
 		void downward_pass(std::vector<double>& L_out) const override;
 	};
@@ -107,7 +100,6 @@ private:
 		node *left, *right;
 		matrix G_hat, G_tilda;
 
-		void __clear();
 		void __print(std::ostream& out) const override;
 		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
 		void downward_pass(std::vector<double>& L) const override;
