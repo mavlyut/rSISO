@@ -28,6 +28,7 @@ int main() {
 	fin >> G;
 	recursive_decoder* rd = new recursive_decoder(G);
 
+	// plotkin_construction_decoder coder(rd, rd);
 	turbo_decoder coder(rd, rd);
 
 	// #ifdef PRINT_SECTION_TREE

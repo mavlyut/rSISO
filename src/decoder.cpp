@@ -5,7 +5,7 @@ decoder::decoder(unsigned n, unsigned k) : n(n), k(k) {}
 
 decoder::~decoder() = default;
 
-binvector decoder::encode(binvector const&) const {
+binvector decoder::encode(binvector const&) {
     throw std::runtime_error("Method encode is not implemented");
 }
 
@@ -57,7 +57,7 @@ binvector soft_decoder::decode(std::vector<double> const& L_in) {
     return ans;
 }
 
-const double soft_decoder::MAX_TRUNC = 12;
+const double soft_decoder::MAX_TRUNC = 16;
 double soft_decoder::truncate(double const &a) {
     if (a > MAX_TRUNC) {
         return MAX_TRUNC;
@@ -76,7 +76,7 @@ std::vector<double> soft_decoder::decode_soft(std::vector<double> const&) {
     throw std::runtime_error("Method decode_soft is not implemented");
 }
 
-binvector linear_soft_decoder::encode(binvector const& c) const {
+binvector linear_soft_decoder::encode(binvector const& c) {
     fail(c.size() == dim(), "encode: incorrect input dim");
     binvector ans(length());
     for (unsigned i = 0; i < dim(); i++) {

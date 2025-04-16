@@ -124,6 +124,8 @@ private:
 	std::vector<binvector> G;
 	node* root;
 
+	std::vector<double> L_out;
+
     void sectionalization();
     node* rec_build_section_tree(unsigned x, unsigned y);
 };

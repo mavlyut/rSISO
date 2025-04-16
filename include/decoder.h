@@ -7,7 +7,7 @@ struct decoder {
     decoder(unsigned n, unsigned k);
     virtual ~decoder();
 
-    virtual binvector encode(binvector const&) const;
+    virtual binvector encode(binvector const&);
     virtual binvector decode(std::vector<double> const&);
     virtual std::pair<double, double> simulate(_Float64, unsigned, unsigned);
 
@@ -34,7 +34,7 @@ struct linear_soft_decoder : public soft_decoder {
     linear_soft_decoder(matrix const&);
     virtual ~linear_soft_decoder();
 
-    binvector encode(binvector const&) const override;
+    binvector encode(binvector const&) override;
 
 protected:
     matrix const G;

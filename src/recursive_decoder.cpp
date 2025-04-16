@@ -1,7 +1,7 @@
 #include "../include/gray_code.h"
 #include "../include/recursive_decoder.h"
 
-recursive_decoder::recursive_decoder(matrix const& _G) : linear_soft_decoder(_G), G(_G) {
+recursive_decoder::recursive_decoder(matrix const& _G) : linear_soft_decoder(_G), G(_G), L_out(n) {
 	time_measure(minimal_span_form(G));
 
 	__log("MSF:\n" << G << "\n")
@@ -279,14 +279,13 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 
 std::vector<double> recursive_decoder::decode_soft(std::vector<_Float64> const& L_in) {
 	for (unsigned i = 0; i < n; i++) {
-		_Float64 L_exp = exp(truncate(L_in[i])); // FIXED: + truncate
+		_Float64 L_exp = exp(truncate(L_in[i]));
 		_Float64 z = 1.0 + L_exp;
 		p0[i] = L_exp / z;
 		p1[i] = 1.0 / z;
 	}
 
 	root->clear();
-	std::vector<double> L_out(length(), 0.0);
 	time_measure(root->upward_pass(p0, p1));
 	time_measure(root->downward_pass(L_out));
 
@@ -366,6 +365,7 @@ void recursive_decoder::leaf_no_simplify::__clear() {
 
 void recursive_decoder::leaf_no_simplify::upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) {
 	binvector v(k1), c(y - x);
+	double T;
 	for (unsigned ind : gray_code(k1 + k2)) {
 		if (ind != UNINIT) {
 			if (ind >= k2) {
@@ -373,7 +373,7 @@ void recursive_decoder::leaf_no_simplify::upward_pass(std::vector<double> const&
 			}
 			c ^= Gp[ind];
 		}
-		double T = F(c, p0, p1);
+		T = F(c, p0, p1);
 		A[v] += T;
 		for (unsigned i = 0; i < y - x; i++) {
 			if (c[i]) {
