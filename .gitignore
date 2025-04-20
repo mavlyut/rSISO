@@ -47,3 +47,4 @@ BKJR*
 802.ldpc
 codes/LDPC_*
 codes/LDPC_generator.cpp
+check.cpp

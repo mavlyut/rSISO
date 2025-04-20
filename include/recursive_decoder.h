@@ -2,6 +2,7 @@
 #define RECURSIVE_DECODER_H
 
 #include "decoder.h"
+#include "gray_code.h"
 
 struct recursive_decoder : public linear_soft_decoder {
     recursive_decoder(matrix const&);
@@ -16,13 +17,18 @@ private:
         std::string getName() const;
 
 		virtual void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) = 0;
-		virtual void downward_pass(std::vector<double>& L) const = 0;
+		virtual void downward_pass(std::vector<double>& L) = 0;
 
 	public:
 		const unsigned x, y;
 		const unsigned k1, k2, k3;
 		std::vector<double> A, B;
 		matrix Gp;
+#ifdef SMALL_OPTIMIZATION
+		small_gray_code traverse_order;
+#else
+		gray_code traverse_order;
+#endif
 
 	protected:
 		inline static const double I = 0;
@@ -42,10 +48,11 @@ private:
 		leaf_no_simplify(unsigned x, unsigned y, unsigned k1, matrix const& Gp);
 
     protected:
-		std::vector<std::vector<double>> A1;
+		std::vector<double> P0, P1;
+		std::vector<std::vector<double>> A0, A1;
 
         void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
-		void downward_pass(std::vector<double>& L) const override;
+		void downward_pass(std::vector<double>& L) override;
     };
 
 #ifdef ENABLE_OPT_1
@@ -56,7 +63,7 @@ private:
 		double ext_l;
 
         void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
-   		void downward_pass(std::vector<double>& L) const override;
+   		void downward_pass(std::vector<double>&) override;
 	};
 #endif // ENABLE_OPT_1
 
@@ -66,7 +73,10 @@ private:
 
     protected:
 		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
-		void downward_pass(std::vector<double>& L) const override;
+		void downward_pass(std::vector<double>&) override;
+
+	private:
+		double ext_l;
 	};
 #endif // ENABLE_OPT_2
 
@@ -78,7 +88,7 @@ private:
 		double Phi00, Phi10, Phi01, Phi11;
 
 		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
-		void downward_pass(std::vector<double>& L) const override;
+		void downward_pass(std::vector<double>&) override;
 	};
 #endif // ENABLE_OPT_3
 
@@ -88,7 +98,10 @@ private:
 
     protected:
 		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
-		void downward_pass(std::vector<double>& L_out) const override;
+		void downward_pass(std::vector<double>&) override;
+
+	private:
+		std::vector<double> P0, P1;
 	};
 #endif // ENABLE_OPT_5
 
@@ -102,7 +115,7 @@ private:
 
 		void __print(std::ostream& out) const override;
 		void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
-		void downward_pass(std::vector<double>& L) const override;
+		void downward_pass(std::vector<double>&) override;
 	};
 
 public:

@@ -30,6 +30,7 @@ int main() {
 
 	// plotkin_construction_decoder coder(rd, rd);
 	turbo_decoder coder(rd, rd);
+	// recursive_sdecoder coder(G);
 
 	// #ifdef PRINT_SECTION_TREE
 	// coder.printTree("Sectionalization.dot");
@@ -85,8 +86,8 @@ int main() {
 			#ifdef TEST
 			auto end = std::chrono::system_clock::now();
 			auto time_in_ms = std::chrono::duration_cast<ms>(end - start).count();
-			fout << "Snr = " << snr << "; FER = " << fer << "; BER = " << ber;
 			#endif
+			fout << "Snr = " << snr << "; FER = " << fer << "; BER = " << ber;
 			#if defined(TEST) && defined(TIMELOG)
 			fout << "; time = " << time_in_ms / 1000.0 << "s";
 			#endif

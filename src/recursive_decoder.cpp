@@ -10,12 +10,8 @@ recursive_decoder::recursive_decoder(matrix const& _G) : linear_soft_decoder(_G)
 	p1.resize(n);
 	_split = std::vector(n + 1, std::vector<unsigned>(n + 1, UNINIT));
 	_ctor = std::vector(n + 1, std::vector<unsigned>(n + 1, 0));
-	if (k > 1) {
-		time_measure(sectionalization());
-		time_measure(root = rec_build_section_tree(0, n));
-	} else {
-		root = new leaf_simplify_2(0, n, G);
-	}
+	time_measure(sectionalization());
+	time_measure(root = rec_build_section_tree(0, n));
 }
 
 void recursive_decoder::sectionalization() {
@@ -27,15 +23,14 @@ void recursive_decoder::sectionalization() {
 	std::vector<std::vector<std::size_t>> phi_d_l(n + 1, std::vector<std::size_t>(n + 1, UNINIT));
 	std::vector<std::vector<unsigned>> phi(n + 1, std::vector<unsigned>(n + 1, UNINIT));
 
-	std::function<void(std::vector<std::vector<std::size_t>>&, unsigned, unsigned, std::size_t const&, unsigned)> update_phi
-	= [&](std::vector<std::vector<std::size_t>>& __phi, unsigned x, unsigned y, std::size_t const& val, unsigned ctorNo) {
+	auto update_phi = [&](std::vector<std::vector<std::size_t>>& __phi, unsigned x, unsigned y, std::size_t const& val, unsigned ctorNo) {
 		if (val < __phi[x][y]) {
 			__phi[x][y] = val;
 			_ctor[x][y] = ctorNo;
 		}
 	};
 
-	std::function<void(std::size_t&, std::size_t const&)> update_uninit = [](std::size_t& x, std::size_t const& y) {
+	auto update_uninit = [](std::size_t& x, std::size_t const& y) {
 		if (x == UNINIT) {
 			x = y;
 		}
@@ -278,6 +273,7 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 }
 
 std::vector<double> recursive_decoder::decode_soft(std::vector<_Float64> const& L_in) {
+	__log("Decode: " << L_in << std::endl);
 	for (unsigned i = 0; i < n; i++) {
 		_Float64 L_exp = exp(truncate(L_in[i]));
 		_Float64 z = 1.0 + L_exp;
@@ -288,6 +284,7 @@ std::vector<double> recursive_decoder::decode_soft(std::vector<_Float64> const& 
 	time_measure(root->upward_pass(p0, p1));
 	time_measure(root->downward_pass(L_out));
 
+	__log("Ans   : " << L_out << "\n" << std::endl);
 	return L_out;
 }
 
@@ -301,7 +298,7 @@ void recursive_decoder::printTree(std::string const& fileName) const {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 recursive_decoder::node::node(unsigned x, unsigned y, unsigned k1, unsigned k2, unsigned k3, matrix const& Gp)
-	: x(x), y(y), k1(k1), k2(k2), k3(k3), A(1ull << k1, I), B(1ull << k1, I), Gp(Gp) {
+	: x(x), y(y), k1(k1), k2(k2), k3(k3), A(1ull << k1, I), B(1ull << k1, I), Gp(Gp), traverse_order(k1 + k2) {
 	__log("Node ctor: x=" << x << ", y=" << y << "; k=(" << k1 << ", " << k2 << ", " << k3 << ")\n");
 }
 
@@ -342,43 +339,49 @@ double recursive_decoder::leaf::LLR(double M0, double M1) const {
 void recursive_decoder::leaf::__print(std::ostream&) const {}
 
 recursive_decoder::leaf_no_simplify::leaf_no_simplify(unsigned x, unsigned y, unsigned k1, matrix const& Gp)
-	: leaf(x, y, k1, Gp), A1(y - x, std::vector<double>(1ull << k1, I)) {}
+	: leaf(x, y, k1, Gp), P0(y - x), P1(y - x)
+	, A0(y - x, std::vector<double>(1ull << k1)), A1(y - x, std::vector<double>(1ull << k1)) {}
 
 void recursive_decoder::leaf_no_simplify::upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) {
 	binvector v(k1), c(y - x);
 	double T;
-	for (unsigned ind : gray_code(k1 + k2)) {
+	for (unsigned ind : traverse_order) {
 		if (ind != UNINIT) {
 			if (ind >= k2) {
 				v.change(ind - k2);
-				A[v] = 0.0;
+				A[v] = B[v] = I;
 				for (unsigned i = 0; i < y - x; i++) {
-					A1[i][v] = 0.0;
+					A0[i][v] = A1[i][v] = I;
 				}
 			}
 			c ^= Gp[ind];
+		} else {
+			A[v] = B[v] = I;
+			for (unsigned i = 0; i < y - x; i++) {
+				A0[i][v] = A1[i][v] = I;
+			}
 		}
 		T = F(c, p0, p1);
 		A[v] += T;
 		for (unsigned i = 0; i < y - x; i++) {
 			if (c[i]) {
 				A1[i][v] += T;
+			} else {
+				A0[i][v] += T;
 			}
 		}
 	}
 }
 
-void recursive_decoder::leaf_no_simplify::downward_pass(std::vector<double>& L) const {
-	std::vector<double> P1(y - x, 0.0);
-	double P_summary = 0.0;
+void recursive_decoder::leaf_no_simplify::downward_pass(std::vector<double>& L) {
 	for (std::size_t v = 0; v < (1ull << k1); v++) {
-		P_summary += A[v] * B[v];
 		for (unsigned i = 0; i < y - x; i++) {
+			P0[i] += A0[i][v] * B[v];
 			P1[i] += A1[i][v] * B[v];
 		}
 	}
 	for (unsigned i = x, j = 0; i < y; i++, j++) {
-		L[i] = LLR((P_summary - P1[j]), P1[j]);
+		L[i] = LLR(P0[j], P1[j]);
 	}
 }
 
@@ -395,7 +398,7 @@ void recursive_decoder::leaf_simplify_1::upward_pass(std::vector<double> const& 
 	}
 }
 
-void recursive_decoder::leaf_simplify_1::downward_pass(std::vector<double>& L) const {
+void recursive_decoder::leaf_simplify_1::downward_pass(std::vector<double>& L) {
 	for (unsigned i = x; i < y; i++) {
 		L[i] = ext_l;
 	}
@@ -417,8 +420,8 @@ void recursive_decoder::leaf_simplify_2::upward_pass(std::vector<double> const& 
 	}
 }
 
-void recursive_decoder::leaf_simplify_2::downward_pass(std::vector<double>& L) const {
-	double ext_l = LLR(B[0] * A[0], B[1] * A[1]);
+void recursive_decoder::leaf_simplify_2::downward_pass(std::vector<double>& L) {
+	ext_l = LLR(B[0] * A[0], B[1] * A[1]);
 	for (unsigned i = x; i < y; i++) {
 		L[i] = ext_l;
 	}
@@ -441,15 +444,17 @@ void recursive_decoder::leaf_simplify_3::upward_pass(std::vector<double> const& 
 	if (k1 == 1) {
 		A[0] = Phi00 + Phi11;
 		A[1] = Phi01 + Phi10;
+		B[0] = B[1] = I;
 	} else {
 		A[0] = Phi00;
 		A[1] = Phi10;
 		A[2] = Phi01;
 		A[3] = Phi11;
+		B[0] = B[1] = B[2] = B[3] = I;
 	}
 }
 
-void recursive_decoder::leaf_simplify_3::downward_pass(std::vector<double>& L) const {
+void recursive_decoder::leaf_simplify_3::downward_pass(std::vector<double>& L) {
 	if (k1 == 1) {
 		double Phi00B0 = Phi00 * B[0];
 		double Phi01B1 = Phi01 * B[1];
@@ -477,13 +482,13 @@ recursive_decoder::leaf_simplify_5::leaf_simplify_5(unsigned x, unsigned y, matr
 
 void recursive_decoder::leaf_simplify_5::upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) {
 	std::vector<double> diffs(k1);
-	double T = 1.0;
+	double T = 1;
 	for (unsigned i = x, j = 0; i < y; i++, j++) {
 		T *= p0[i];
 		diffs[j] = p0[i] / p1[i];
 	}
 	binvector v(k1);
-	for (unsigned ind : gray_code(k1)) {
+	for (unsigned ind : traverse_order) {
 		if (ind != UNINIT) {
 			if (v[ind]) {
 				T *= diffs[ind];
@@ -496,19 +501,21 @@ void recursive_decoder::leaf_simplify_5::upward_pass(std::vector<double> const& 
 	}
 }
 
-void recursive_decoder::leaf_simplify_5::downward_pass(std::vector<double>& L_out) const {
-	std::vector<double> P1(k1, 0.0);
-	double P_summary = 0;
-	for (std::size_t v = 0; v < (1ull << k1); v++) {
-		P_summary += A[v] * B[v];
+void recursive_decoder::leaf_simplify_5::downward_pass(std::vector<double>& L_out) {
+	for (unsigned i = 0; i < k1; i++) {
+		P0[i] = P1[i] = I;
+	}
+	for (std::size_t v = 1; v < (1ull << k1); v++) {
 		for (unsigned i = 0; i < k1; i++) {
 			if ((v >> i) & 1) {
 				P1[i] += A[v] * B[v];
+			} else {
+				P0[i] += A[v] * B[v];
 			}
 		}
 	}
 	for (unsigned i = x, j = 0; i < y; i++, j++) {
-		L_out[i] = LLR((P_summary - P1[j]), P1[j]);
+		L_out[i] = LLR(P0[j], P1[j]);
 	}
 }
 
@@ -528,25 +535,26 @@ void recursive_decoder::inner::upward_pass(std::vector<double> const& p0, std::v
 	right->upward_pass(p0, p1);
 	if (k1 != 0) {
 		binvector a(left->k1), b(right->k1), v(k1);
-		for (unsigned ind : gray_code(k1 + k2)) {
+		for (unsigned ind : traverse_order) {
 			if (ind != UNINIT) {
 				if (ind >= k2) {
 					v.change(ind - k2);
-					A[v] = 0.0;
-					B[v] = 0.0;
+					A[v] = B[v] = I;
 				}
 				a ^= G_hat[ind];
 				b ^= G_tilda[ind];
+			} else {
+				A[v] = B[v] = I;
 			}
 			A[v] += left->A[a] * right->A[b];
 		}
 	}
 }
 
-void recursive_decoder::inner::downward_pass(std::vector<double>& L) const {
+void recursive_decoder::inner::downward_pass(std::vector<double>& L) {
 	binvector a(left->k1), b(right->k1);
 	if (k1 == 0) {
-		for (unsigned ind : gray_code(k1 + k2)) {
+		for (unsigned ind : traverse_order) {
 			if (ind != UNINIT) {
 				a ^= G_hat[ind];
 				b ^= G_tilda[ind];
@@ -556,7 +564,7 @@ void recursive_decoder::inner::downward_pass(std::vector<double>& L) const {
 		}
 	} else {
 		binvector v(k1);
-		for (unsigned ind : gray_code(k1 + k2)) {
+		for (unsigned ind : traverse_order) {
 			if (ind != UNINIT) {
 				if (ind >= k2) {
 					v.change(ind - k2);

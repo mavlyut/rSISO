@@ -64,3 +64,47 @@ gray_code::gray_code_iterator gray_code::begin() const {
 gray_code::gray_code_iterator gray_code::end() const {
     return gray_code_iterator(n, with_zero, true);
 }
+
+
+small_gray_code::small_gray_code(unsigned n) : n(n) {}
+
+small_gray_code::small_gray_code_iterator::small_gray_code_iterator(unsigned n, std::size_t tmp_num)
+    : n(n), change_bit(UNINIT), tmp_num(tmp_num) {}
+
+small_gray_code::small_gray_code_iterator& small_gray_code::small_gray_code_iterator::operator++() {
+    std::size_t next_num = tmp_num + 1;
+    for (unsigned j = n; j-- > 0; ) {
+        if (((tmp_num >> j) & 1) != ((next_num >> j) & 1)) {
+            change_bit = j;
+            break;
+        }
+    }
+    tmp_num = next_num;
+    return *this;
+}
+
+small_gray_code::small_gray_code_iterator small_gray_code::small_gray_code_iterator::operator++(signed) {
+    small_gray_code_iterator ret = *this;
+    ++*this;
+    return ret;
+}
+
+bool small_gray_code::small_gray_code_iterator::operator==(small_gray_code_iterator const& other) const {
+    return tmp_num == other.tmp_num;
+}
+
+bool small_gray_code::small_gray_code_iterator::operator!=(small_gray_code_iterator const& other) const {
+    return !(*this == other);
+}
+
+small_gray_code::small_gray_code_iterator::reference small_gray_code::small_gray_code_iterator::operator*() const {
+    return change_bit;
+}
+
+small_gray_code::small_gray_code_iterator small_gray_code::begin() const {
+    return small_gray_code_iterator(n, 0);
+}
+
+small_gray_code::small_gray_code_iterator small_gray_code::end() const {
+    return small_gray_code_iterator(n, (1ull << n));
+}

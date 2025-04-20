@@ -59,4 +59,40 @@ private:
     unsigned n;
 };
 
+struct small_gray_code {
+    small_gray_code(unsigned);
+
+    class small_gray_code_iterator : std::iterator<
+                    std::input_iterator_tag,
+                    unsigned,
+                    std::ptrdiff_t,
+                    unsigned const*,
+                    unsigned const&
+                > {
+    friend struct small_gray_code;
+
+    private:
+        explicit small_gray_code_iterator(unsigned, std::size_t);
+
+    public:
+        small_gray_code_iterator& operator++();
+        small_gray_code_iterator operator++(signed);
+
+        bool operator==(small_gray_code_iterator const&) const;
+        bool operator!=(small_gray_code_iterator const&) const;
+
+        reference operator*() const;
+
+    private:
+        unsigned n, change_bit;
+        std::size_t tmp_num;
+    };
+
+    small_gray_code_iterator begin() const;
+    small_gray_code_iterator end() const;
+
+private:
+    unsigned n;
+};
+
 #endif // GRAY_CODE_H

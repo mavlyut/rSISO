@@ -9,6 +9,7 @@
 #define ENABLE_OPT_2
 #define ENABLE_OPT_3
 #define ENABLE_OPT_5
+#define SMALL_OPTIMIZATION
 
 // #define LOG
 // #define TIMELOG
