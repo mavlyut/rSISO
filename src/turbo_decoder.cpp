@@ -34,31 +34,6 @@ binvector turbo_decoder::encode(binvector const& c) {
     return ans;
 }
 
-struct vector_range : std::vector<double> {
-    vector_range(std::vector<double>& ref, unsigned start, unsigned sz, unsigned step)
-        : vector(), start(start), sz(sz), step(step), ref(ref) {
-        fail(start + step * (sz - 1) < ref.size(), "vector_range, ctor: invalid size");
-    }
-
-    double operator[](unsigned i) const {
-        fail(i >= 0 && i < sz, "vector_range: index out of bounds");
-        return ref[start + step * i];
-    }
-
-    double& operator[](unsigned i) {
-        fail(i >= 0 && i < sz, "vector_range: index out of bounds");
-        return ref[start + step * i];
-    }
-
-    unsigned size() const {
-        return sz;
-    }
-
-private:
-    unsigned start, sz, step;
-    std::vector<double>& ref;
-};
-
 // C=0.35
 const unsigned turbo_decoder::ITER_CNT = 4;
 std::vector<double> turbo_decoder::decode_soft(std::vector<double> const& L0) {
@@ -67,7 +42,6 @@ std::vector<double> turbo_decoder::decode_soft(std::vector<double> const& L0) {
     L_out = L0;
     for (unsigned cnt = 0; cnt < ITER_CNT; ++cnt) {
         for (unsigned i = 0; i < n1; ++i) {
-            // colL = vector_range(L_out, i, n2, n1);
             for (unsigned j = 0; j < n2; ++j) {
                 colL[j] = L_out[j * n1 + i];
             }

@@ -490,16 +490,16 @@ double recursive_decoder::leaf::F(std::size_t const& c, std::vector<double> cons
 }
 
 double recursive_decoder::leaf::LLR(double M0, double M1) const {
-	// if (M0 < EPS && M1 < EPS) {
-	// 	// __log("Leaf, LLR: nan" << std::endl);
-	// 	return NAN;
-	// } else if (M0 < EPS) {
-	// 	// __log("Leaf, LLR: -inf" << std::endl);
-	// 	return -INF;
-	// } else if (M1 < EPS) {
-	// 	// __log("Leaf, LLR: inf" << std::endl);
-	// 	return INF;
-	// }
+	if (M0 < EPS && M1 < EPS) {
+		// __log("Leaf, LLR: nan" << std::endl);
+		return NAN;
+	} else if (M0 < EPS) {
+		// __log("Leaf, LLR: -inf" << std::endl);
+		return -INF;
+	} else if (M1 < EPS) {
+		// __log("Leaf, LLR: inf" << std::endl);
+		return INF;
+	}
 	return truncate(log(M0 / M1));
 }
 
