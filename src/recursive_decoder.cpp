@@ -7,7 +7,7 @@
 #define changebit(v, i) v ^= (1ull << (i))
 #define printbv(msg, n, v) 					\
 	__log(msg);								\
-	for (unsigned j = 0; j < n; j++) { 		\
+	for (unsigned j = 0; j < n; ++j) { 		\
 		if (j != 0) __log(" ");				\
 		__log((((v >> j) & 1) ? 1 : 0));	\
 	}
@@ -37,10 +37,10 @@ std::vector<unsigned> gauss(unsigned n, std::vector<std::size_t>& a) {
 			if (fl) {
 				break;
 			}
-			last_c++;
+			++last_c;
 		}
 		if (last_c == n) {
-			for (unsigned ii = i; ii < k; ii++) {
+			for (unsigned ii = i; ii < k; ++ii) {
 				a.pop_back();
 			}
 			break;
@@ -53,7 +53,7 @@ std::vector<unsigned> gauss(unsigned n, std::vector<std::size_t>& a) {
 				}
 			}
 		}
-		last_c++;
+		++last_c;
 	}
 	// printmatrix("After Gauss: ", n, a);
 	return gamma;
@@ -62,7 +62,7 @@ std::vector<unsigned> gauss(unsigned n, std::vector<std::size_t>& a) {
 void full_gauss(unsigned n, std::vector<std::size_t>& a) {
 	std::vector<unsigned> gamma = gauss(n, a);
 	for (unsigned i = gamma.size(); i-- > 0; ) {
-		for (unsigned j = 0; j < i; j++) {
+		for (unsigned j = 0; j < i; ++j) {
 			if (getbit(a[j], gamma[i])) {
 				a[j] ^= a[i];
 			}
@@ -76,7 +76,7 @@ void minimal_span_form(unsigned n, std::vector<std::size_t>& G) {
 	for (unsigned i = k; i-- > 0; ) {
 		unsigned j = n;
 		while (j-- > 0 && getbit(G[i], j) == 0) {}
-		for (unsigned r = 0; r < i; r++) {
+		for (unsigned r = 0; r < i; ++r) {
 			if (getbit(G[r], j)) {
 				G[r] ^= G[i];
 			}
@@ -119,7 +119,7 @@ unsigned recursive_decoder::dim() const {
 std::size_t recursive_decoder::encode(std::size_t const& c) {
 	printbv("Encode: ", k, c); __log(std::endl);
     std::size_t ans = 0;
-    for (unsigned i = 0; i < k; i++) {
+    for (unsigned i = 0; i < k; ++i) {
         if (getbit(c, i)) {
             ans ^= G_enc[i];
         }
@@ -144,7 +144,7 @@ std::pair<double, double> recursive_decoder::simulate(double snr, unsigned iter_
     unsigned errr = 0, berr = 0, sim_cnt = 0;
     while (errr < max_error && sim_cnt < iter_cnt) {
         std::size_t x = 0;
-        for (unsigned t = 0; t < k; t++) {
+        for (unsigned t = 0; t < k; ++t) {
 			if (rand() % 2) {
 				x |= (1ull << t);
 			}
@@ -152,23 +152,23 @@ std::pair<double, double> recursive_decoder::simulate(double snr, unsigned iter_
         std::size_t enc = encode(x);
         _Float64 coef = 2.0f / (sigma * sigma);
         std::vector<_Float64> L_in(n);
-        for (unsigned t = 0; t < n; t++) {
+        for (unsigned t = 0; t < n; ++t) {
             L_in[t] = coef * ((((enc >> t) & 1) ? -1 : 1) + norm(gen));
         }
         std::vector<double> soft_dec = decode_soft(L_in);
 		std::size_t dec = 0;
-		for (unsigned t = 0; t < n; t++) {
+		for (unsigned t = 0; t < n; ++t) {
 			if (soft_dec[t] < 0) {
 				dec |= (1ull << t);
 			}
 			if ((soft_dec[t] < 0) != ((enc >> t) & 1)) {
-				berr++;
+				++berr;
 			}
 		}
 		printbv("Encoded: ", n, enc); __log("\n");
 		printbv("Decoded: ", n, dec); __log(std::endl);
         errr += (dec != enc);
-        sim_cnt++;
+        ++sim_cnt;
     }
     return {(errr + 0.0) / sim_cnt, (berr + 0.0) / (sim_cnt * n)};
 }
@@ -195,14 +195,14 @@ void recursive_decoder::sectionalization() {
 		}
 	};
 
-	for (unsigned x = 0; x <= n; x++) {
-		for (unsigned y = x + 1; y <= n; y++) {
+	for (unsigned x = 0; x <= n; ++x) {
+		for (unsigned y = x + 1; y <= n; ++y) {
 			matrix Gp;
 			unsigned k3 = 0;
 			for (std::size_t const& row : G) {
 				Gp.push_back(subvector(row, x, y));
 				if (subvector(row, 0, x) == 0ull && subvector(row, y, n) == 0ull) {
-					k3++;
+					++k3;
 				}
 			}
 			// __log("segment " << x << " " << y << std::endl);
@@ -240,11 +240,11 @@ void recursive_decoder::sectionalization() {
 		}
 	}
 
-	for (unsigned x = 0; x <= n; x++) {
-		for (unsigned y = x + 1; y <= n; y++) {
+	for (unsigned x = 0; x <= n; ++x) {
+		for (unsigned y = x + 1; y <= n; ++y) {
 			update_phi(phi_u_l, x, y, (1ull << _Gp_size[x][y]) * (2 * (y - x) - 1), 0);
 			update_phi(phi_d_l, x, y, ((1ull << (_Gp_size[x][y] - _Gs_size[x][y] + 1))) * (y - x + 1) + 2 * (y - x), 0);
-			for (unsigned z = x + 1; z < y - 1; z++) {
+			for (unsigned z = x + 1; z < y - 1; ++z) {
 				unsigned k1_k2 = _Gp_size[x][y] - _Gs_size[x][z] - _Gs_size[z][y];
 				update_uninit(phi_u_c[x][y][z], (1ull << (k1_k2 + 1)));
 				update_uninit(phi_d_c[x][y][z], (1ull << (k1_k2 + 2)));
@@ -256,7 +256,7 @@ void recursive_decoder::sectionalization() {
 		if (phi[x][y] == UNINIT) {
 			unsigned ind_min = UNINIT;
 			std::size_t min_score = phi_u_l[x][y] + phi_d_l[x][y];
-			for (unsigned z = x + 1; z < y - 1; z++) {
+			for (unsigned z = x + 1; z < y - 1; ++z) {
 				std::size_t score = phi_u_c[x][y][z] + phi_d_c[x][y][z] + get_phi(x, z) + get_phi(z, y);
 				if (score < min_score) {
 					min_score = score;
@@ -284,7 +284,7 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 	unsigned z = _split[x][y];
 	if (z == UNINIT) {
 		matrix Gp, Gs, Gl;
-		for (unsigned i = 0; i < k; i++) {
+		for (unsigned i = 0; i < k; ++i) {
 			std::size_t row = G[i];
 			std::size_t append = subvector(row, x, y);
 			if (subvector(row, 0, x) == 0ull && subvector(row, y, n) == 0ull) {
@@ -299,7 +299,7 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 		for (std::size_t const& row : Gl) {
 			if (lin_indep(y - x, Gp, row)) {
 				Gp.push_back(row);
-				k1++;
+				++k1;
 			}
 		}
 
@@ -341,7 +341,7 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 	}
 
 	matrix Gp, _G0, _G1; unsigned k3 = 0;
-	for (unsigned i = 0; i < k; i++) {
+	for (unsigned i = 0; i < k; ++i) {
 		std::size_t row = G[i];
 		std::size_t append = subvector(row, x, y);
 		if (subvector(row, 0, x) == 0ull && subvector(row, y, n) == 0ull) {
@@ -350,7 +350,7 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 			} else {
 				_G0.push_back(append);
 			}
-			k3++;
+			++k3;
 		} else {
 			_G1.push_back(append);
 		}
@@ -368,7 +368,7 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 			Gp.push_back(row);
 			G_0.push_back(subvector(row, 0, z - x));
 			G_1.push_back(subvector(row, z - x, y - x));
-			k2++;
+			++k2;
 		}
 	}
 	for (std::size_t const& row : _G1) {
@@ -376,7 +376,7 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 			Gp.push_back(row);
 			G_0.push_back(subvector(row, 0, z - x));
 			G_1.push_back(subvector(row, z - x, y - x));
-			k1++;
+			++k1;
 		}
 	}
 
@@ -392,12 +392,12 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 	matrix G_tilda(k1 + k2, 0);
 	{
 		matrix G_hat_ext(z - x, 0);
-		for (unsigned i = 0; i < z - x; i++) {
+		for (unsigned i = 0; i < z - x; ++i) {
 			unsigned j = 0;
-			for (unsigned t = 0; t < left->Gp.size(); t++, j++) {
+			for (unsigned t = 0; t < left->Gp.size(); ++t, ++j) {
 				setbit(G_hat_ext[i], j, getbit(left->Gp[t], i));
 			}
-			for (unsigned t = 0; t < G_0.size(); t++, j++) {
+			for (unsigned t = 0; t < G_0.size(); ++t, ++j) {
 				setbit(G_hat_ext[i], j, getbit(G_0[t], i));
 			}
 		}
@@ -405,20 +405,20 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 
 		printmatrix("G_hat_ext:", left->k1 + left->k3 + k1 + k2, G_hat_ext);
 
-		for (unsigned i = 0; i < k1 + k2; i++) {
-			for (unsigned j = 0; j < left->k1; j++) {
+		for (unsigned i = 0; i < k1 + k2; ++i) {
+			for (unsigned j = 0; j < left->k1; ++j) {
 				setbit(G_hat[i], left->k1 - j - 1, getbit(G_hat_ext[G_hat_ext.size() - j - 1], i + left->k1 + left->k3));
 			}
 		}
 	}
 	{
 		matrix G_tilda_ext(y - z, 0);
-		for (unsigned i = 0; i < y - z; i++) {
+		for (unsigned i = 0; i < y - z; ++i) {
 			unsigned j = 0;
-			for (unsigned t = 0; t < right->Gp.size(); t++, j++) {
+			for (unsigned t = 0; t < right->Gp.size(); ++t, ++j) {
 				setbit(G_tilda_ext[i], j, getbit(right->Gp[t], i));
 			}
-			for (unsigned t = 0; t < G_1.size(); t++, j++) {
+			for (unsigned t = 0; t < G_1.size(); ++t, ++j) {
 				setbit(G_tilda_ext[i], j, getbit(G_1[t], i));
 			}
 		}
@@ -426,8 +426,8 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 
 		printmatrix("G_tilda_ext:", right->k1 + right->k3 + k1 + k2, G_tilda_ext);
 
-		for (unsigned i = 0; i < k1 + k2; i++) {
-			for (unsigned j = 0; j < right->k1; j++) {
+		for (unsigned i = 0; i < k1 + k2; ++i) {
+			for (unsigned j = 0; j < right->k1; ++j) {
 				setbit(G_tilda[i], right->k1 - j - 1, getbit(G_tilda_ext[G_tilda_ext.size() - j - 1], i + right->k1 + right->k3));
 			}
 		}
@@ -441,7 +441,7 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 
 std::vector<double> recursive_decoder::decode_soft(std::vector<_Float64> const& L_in) {
 	__log("Decode: " << L_in << std::endl);
-	for (unsigned i = 0; i < n; i++) {
+	for (unsigned i = 0; i < n; ++i) {
 		_Float64 L_exp = exp(truncate(L_in[i]));
 		_Float64 z = 1.0 + L_exp;
 		p0[i] = L_exp / z;
@@ -483,7 +483,7 @@ recursive_decoder::leaf::leaf(unsigned x, unsigned y, unsigned k1, matrix const&
 
 double recursive_decoder::leaf::F(std::size_t const& c, std::vector<double> const& p0, std::vector<double> const& p1) const {
 	double ans = 1.0;
-	for (unsigned i = x, j = 0; i < y; i++, j++) {
+	for (unsigned i = x, j = 0; i < y; ++i, ++j) {
 		ans *= (getbit(c, j) ? p1[i] : p0[i]);
 	}
 	return ans;
@@ -517,20 +517,20 @@ void recursive_decoder::leaf_no_simplify::upward_pass(std::vector<double> const&
 			if (ind >= k2) {
 				changebit(v, ind - k2);
 				A[v] = B[v] = I;
-				for (unsigned i = 0; i < y - x; i++) {
+				for (unsigned i = 0; i < y - x; ++i) {
 					A0[i][v] = A1[i][v] = I;
 				}
 			}
 			c ^= Gp[ind];
 		} else {
 			A[v] = B[v] = I;
-			for (unsigned i = 0; i < y - x; i++) {
+			for (unsigned i = 0; i < y - x; ++i) {
 				A0[i][v] = A1[i][v] = I;
 			}
 		}
 		T = F(c, p0, p1);
 		A[v] += T;
-		for (unsigned i = 0; i < y - x; i++) {
+		for (unsigned i = 0; i < y - x; ++i) {
 			if (getbit(c, i)) {
 				A1[i][v] += T;
 			} else {
@@ -541,16 +541,16 @@ void recursive_decoder::leaf_no_simplify::upward_pass(std::vector<double> const&
 }
 
 void recursive_decoder::leaf_no_simplify::downward_pass(std::vector<double>& L) {
-	for (unsigned i = 0; i < y - x; i++) {
+	for (unsigned i = 0; i < y - x; ++i) {
 		P0[i] = P1[i] = 0.0;
 	}
-	for (std::size_t v = 0; v < (1ull << k1); v++) {
-		for (unsigned i = 0; i < y - x; i++) {
+	for (std::size_t v = 0; v < (1ull << k1); ++v) {
+		for (unsigned i = 0; i < y - x; ++i) {
 			P0[i] += A0[i][v] * B[v];
 			P1[i] += A1[i][v] * B[v];
 		}
 	}
-	for (unsigned i = x, j = 0; i < y; i++, j++) {
+	for (unsigned i = x, j = 0; i < y; ++i, ++j) {
 		L[i] = LLR(P0[j], P1[j]);
 	}
 }
@@ -563,13 +563,13 @@ recursive_decoder::leaf_simplify_1::leaf_simplify_1(unsigned x, unsigned y, matr
 
 void recursive_decoder::leaf_simplify_1::upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) {
 	ext_l = I;
-	for (unsigned i = x; i < y; i++) {
+	for (unsigned i = x; i < y; ++i) {
 		ext_l += LLR(p0[i], p1[i]);
 	}
 }
 
 void recursive_decoder::leaf_simplify_1::downward_pass(std::vector<double>& L) {
-	for (unsigned i = x; i < y; i++) {
+	for (unsigned i = x; i < y; ++i) {
 		L[i] = ext_l;
 	}
 }
@@ -584,7 +584,7 @@ recursive_decoder::leaf_simplify_2::leaf_simplify_2(unsigned x, unsigned y, matr
 
 void recursive_decoder::leaf_simplify_2::upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) {
 	A[0] = A[1] = 1.0;
-	for (unsigned i = x; i < y; i++) {
+	for (unsigned i = x; i < y; ++i) {
 		A[0] *= p0[i];
 		A[1] *= p1[i];
 	}
@@ -592,7 +592,7 @@ void recursive_decoder::leaf_simplify_2::upward_pass(std::vector<double> const& 
 
 void recursive_decoder::leaf_simplify_2::downward_pass(std::vector<double>& L) {
 	ext_l = LLR(B[0] * A[0], B[1] * A[1]);
-	for (unsigned i = x; i < y; i++) {
+	for (unsigned i = x; i < y; ++i) {
 		L[i] = ext_l;
 	}
 }
@@ -653,7 +653,7 @@ recursive_decoder::leaf_simplify_5::leaf_simplify_5(unsigned x, unsigned y, matr
 void recursive_decoder::leaf_simplify_5::upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) {
 	std::vector<double> diffs(k1);
 	double T = 1;
-	for (unsigned i = x, j = 0; i < y; i++, j++) {
+	for (unsigned i = x, j = 0; i < y; ++i, ++j) {
 		T *= p0[i];
 		diffs[j] = p0[i] / p1[i];
 	}
@@ -672,11 +672,11 @@ void recursive_decoder::leaf_simplify_5::upward_pass(std::vector<double> const& 
 }
 
 void recursive_decoder::leaf_simplify_5::downward_pass(std::vector<double>& L_out) {
-	for (unsigned i = 0; i < k1; i++) {
+	for (unsigned i = 0; i < k1; ++i) {
 		P0[i] = P1[i] = I;
 	}
-	for (std::size_t v = 1; v < (1ull << k1); v++) {
-		for (unsigned i = 0; i < k1; i++) {
+	for (std::size_t v = 1; v < (1ull << k1); ++v) {
+		for (unsigned i = 0; i < k1; ++i) {
 			if ((v >> i) & 1) {
 				P1[i] += A[v] * B[v];
 			} else {
@@ -684,7 +684,7 @@ void recursive_decoder::leaf_simplify_5::downward_pass(std::vector<double>& L_ou
 			}
 		}
 	}
-	for (unsigned i = x, j = 0; i < y; i++, j++) {
+	for (unsigned i = x, j = 0; i < y; ++i, ++j) {
 		L_out[i] = LLR(P0[j], P1[j]);
 	}
 }

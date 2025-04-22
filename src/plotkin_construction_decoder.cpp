@@ -18,10 +18,10 @@ binvector plotkin_construction_decoder::encode(binvector const& c) {
     auto u2 = (dec2->encode(c.subvector(dec1->dim(), dec1->dim() + dec2->dim())) ^ u1);
     binvector ans(length());
     unsigned i = 0;
-    for (; i < u1.size(); i++) {
+    for (; i < u1.size(); ++i) {
         ans.set(i, u1[i]);
     }
-    for (unsigned j = 0; j < u2.size(); i++, j++) {
+    for (unsigned j = 0; j < u2.size(); ++i, ++j) {
         ans.set(i, u2[j]);
     }
     return ans;
@@ -41,21 +41,21 @@ std::vector<double> plotkin_construction_decoder::decode_soft(std::vector<double
     fail(L0.size() == length(), "Pt, decode: incorrect size");
     __log("Pt, decode: " << L0 << std::endl);
     bool is_codeword;
-    for (unsigned i = 0; i < m; i++) {
+    for (unsigned i = 0; i < m; ++i) {
         Lq1[i] = truncate(L0[i]);
         Lq2[i] = truncate(L0[i + m]);
     }
-    for (unsigned _t = 0; _t < MAX_ITER_COUNT; _t++) {
+    for (unsigned _t = 0; _t < MAX_ITER_COUNT; ++_t) {
         Lq0 = dec1->decode_soft(Lq0);
         Lq2 = dec2->decode_soft(Lq2);
 
-        for (unsigned j = 0; j < m; j++) {
+        for (unsigned j = 0; j < m; ++j) {
             Lr[j][0] = truncate((sign(Lq1[j]) * sign(Lq2[j])) * phi(phi(std::abs(Lq1[j])) + phi(std::abs(Lq2[j]))));
             Lr[j][1] = truncate((sign(Lq2[j]) * sign(Lq0[j])) * phi(phi(std::abs(Lq2[j])) + phi(std::abs(Lq0[j]))));
             Lr[j][2] = truncate((sign(Lq0[j]) * sign(Lq1[j])) * phi(phi(std::abs(Lq0[j])) + phi(std::abs(Lq1[j]))));
         }
 
-        for (unsigned i = 0; i < m; i++) {
+        for (unsigned i = 0; i < m; ++i) {
             Lq0[i] = truncate(Lq0[i] + Lr[i][0]);
             Lq1[i] = truncate(Lq1[i] + Lr[i][1]);
             Lq2[i] = truncate(Lq2[i] + Lr[i][2]);
@@ -64,7 +64,7 @@ std::vector<double> plotkin_construction_decoder::decode_soft(std::vector<double
         __log("After " << _t + 1 << " iteration: " << Lq1 << " " << Lq2 << std::endl);
 
         is_codeword = true;
-        for (unsigned j = 0; j < m; j++) {
+        for (unsigned j = 0; j < m; ++j) {
             if (!((Lq0[j] < 0) ^ (Lq1[j] < 0) ^ (Lq2[j] < 0))) {
                 is_codeword = false;
                 break;
@@ -74,7 +74,7 @@ std::vector<double> plotkin_construction_decoder::decode_soft(std::vector<double
             break;
         }
     }
-    for (unsigned i = 0; i < m; i++) {
+    for (unsigned i = 0; i < m; ++i) {
         L_out[i] = Lq1[i];
         L_out[i + m] = Lq2[i];
     }

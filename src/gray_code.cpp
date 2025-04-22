@@ -39,7 +39,7 @@ gray_code::gray_code_iterator::reference gray_code::gray_code_iterator::operator
 }
 
 void gray_code::gray_code_iterator::next_vector() {
-    for (unsigned i = 0; i < ind.size(); i++) {
+    for (unsigned i = 0; i < ind.size(); ++i) {
         _digits_t& c = ind[i];
         if (c == MAX_DIGIT) {
             c = 0;

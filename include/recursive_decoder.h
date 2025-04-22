@@ -26,11 +26,7 @@ private:
 		const unsigned k1, k2, k3;
 		std::vector<double> A, B;
 		matrix Gp;
-#ifdef SMALL_OPTIMIZATION
 		small_gray_code traverse_order;
-#else
-		gray_code traverse_order;
-#endif
 
 	protected:
 		inline static const double I = 0;

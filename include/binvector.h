@@ -34,7 +34,7 @@ public:
 	__binvector(unsigned m) : __binvector(m, 0) {}
 
 	explicit __binvector(unsigned m, _int_t x) : sz(m), coefs((m + chunk_size - 1) / chunk_size, 0) {
-		for (unsigned i = 0; i < m; i++, x >>= 1) {
+		for (unsigned i = 0; i < m; ++i, x >>= 1) {
 			set(i, x & 1);
 		}
 	}
@@ -59,7 +59,7 @@ public:
 	}
 
 	void set(unsigned i, bool val) {
-		CNT_BIN++;
+		++CNT_BIN;
 		if (val) {
 			coefs[i / chunk_size] |= (1ull << (i % chunk_size));
 		} else {
@@ -68,7 +68,7 @@ public:
 	}
 
 	void change(unsigned i) {
-		CNT_BIN++;
+		++CNT_BIN;
 		coefs[i / chunk_size] ^= (1ull << (i % chunk_size));
 	}
 
@@ -77,7 +77,7 @@ public:
 			return __binvector(0);
 		}
 		__binvector ans(y - x);
-		for (unsigned i = 0; i < ans.size(); i++) {
+		for (unsigned i = 0; i < ans.size(); ++i) {
 			ans.set(i, operator[](i + x));
 		}
 		return ans;
@@ -97,7 +97,7 @@ public:
 
 	int wt() const {
 		int ans = 0;
-		for (unsigned i = 0; i < size(); i++) {
+		for (unsigned i = 0; i < size(); ++i) {
 			ans += operator[](i);
 		}
 		return ans;
@@ -107,7 +107,7 @@ public:
 	__binvector& operator^=(__binvector const& r) {
 		fail(r.size() <= size(), "^=: invalid size");
 		CNT_BIN += r.coefs.size();
-		for (unsigned i = 0; i < r.coefs.size(); i++) {
+		for (unsigned i = 0; i < r.coefs.size(); ++i) {
 			coefs[i] ^= r.coefs[i];
 		}
 		return *this;
@@ -120,7 +120,7 @@ public:
 public:
 	friend std::istream& operator>>(std::istream& in, __binvector& a) {
 		int b;
-		for (unsigned i = 0; i < a.size(); i++) {
+		for (unsigned i = 0; i < a.size(); ++i) {
 			in >> b;
 			a.set(i, b);
 		}
@@ -129,7 +129,7 @@ public:
 
 public:
 	friend std::ostream& operator<<(std::ostream& out, __binvector const& a) {
-		for (unsigned i = 0; i < a.size(); i++) {
+		for (unsigned i = 0; i < a.size(); ++i) {
 			if (i != 0) {
 				out << ' ';
 			}

@@ -17,16 +17,16 @@ turbo_decoder::turbo_decoder(recursive_decoder* dec_row, recursive_decoder* dec_
 binvector turbo_decoder::encode(binvector const& c) {
     fail(c.size() == dim(), "turbo, encode: incorrect dim");
     __log("Turbo.encode: " << c << std::endl);
-    for (unsigned i = 0; i < k2; i++) {
+    for (unsigned i = 0; i < k2; ++i) {
         auto row = dec_row->encode(c.subvector(k1 * i, k1 * (i + 1)));
-        for (unsigned j = 0; j < n1; j++) {
+        for (unsigned j = 0; j < n1; ++j) {
             enc1t[j].set(i, ((row >> j) & 1));
         }
     }
     __log("Turbo.row_encoded:\n" << enc1t);
-    for (unsigned j = 0; j < n1; j++) {
+    for (unsigned j = 0; j < n1; ++j) {
         auto row = dec_col->encode(enc1t[j]);
-        for (unsigned i = 0; i < n2; i++) {
+        for (unsigned i = 0; i < n2; ++i) {
             ans.set(i * n1 + j, ((row >> i) & 1));
         }
     }
@@ -65,20 +65,20 @@ std::vector<double> turbo_decoder::decode_soft(std::vector<double> const& L0) {
     fail(L0.size() == length(), "turbo, decode: incorrect dim");
     __log("Turbo.decode: " << L0 << std::endl);
     L_out = L0;
-    for (unsigned cnt = 0; cnt < ITER_CNT; cnt++) {
-        for (unsigned i = 0; i < n1; i++) {
+    for (unsigned cnt = 0; cnt < ITER_CNT; ++cnt) {
+        for (unsigned i = 0; i < n1; ++i) {
             // colL = vector_range(L_out, i, n2, n1);
-            for (unsigned j = 0; j < n2; j++) {
+            for (unsigned j = 0; j < n2; ++j) {
                 colL[j] = L_out[j * n1 + i];
             }
             auto colDec = dec_col->decode_soft(colL);
-            for (unsigned j = 0; j < n2; j++) {
+            for (unsigned j = 0; j < n2; ++j) {
                 dec2t[j][i] = colDec[j];
             }
         }
-        for (unsigned j = 0; j < n2; j++) {
+        for (unsigned j = 0; j < n2; ++j) {
             auto row = dec_row->decode_soft(dec2t[j]);
-            for (unsigned i = 0; i < n1; i++) {
+            for (unsigned i = 0; i < n1; ++i) {
                 L_out[j * n1 + i] = row[i];
             }
         }

@@ -19,19 +19,19 @@ std::pair<double, double> decoder::simulate(_Float64 snr, unsigned iter_cnt, uns
     unsigned errr = 0, berr = 0, sim_cnt = 0;
     while (errr < max_error && sim_cnt < iter_cnt) {
         binvector x(dim());
-        for (unsigned t = 0; t < dim(); t++) {
+        for (unsigned t = 0; t < dim(); ++t) {
             x.set(t, rand() % 2);
         }
         binvector enc = encode(x);
         _Float64 coef = 2.0f / (sigma * sigma);
         std::vector<_Float64> L_in(length());
-        for (unsigned t = 0; t < length(); t++) {
+        for (unsigned t = 0; t < length(); ++t) {
             L_in[t] = coef * ((enc[t] ? -1 : 1) + norm(gen));
         }
         binvector dec = decode(L_in);
         errr += (dec != enc);
         berr += (dec ^ enc).wt();
-        sim_cnt++;
+        ++sim_cnt;
     }
     return {(errr + 0.0) / sim_cnt, (berr + 0.0) / (sim_cnt * n)};
 }
@@ -51,7 +51,7 @@ soft_decoder::~soft_decoder() = default;
 binvector soft_decoder::decode(std::vector<double> const& L_in) {
     std::vector<double> L_out = decode_soft(L_in);
     binvector ans(length());
-    for (unsigned i = 0; i < ans.size(); i++) {
+    for (unsigned i = 0; i < ans.size(); ++i) {
         ans.set(i, L_out[i] < 0);
     }
     return ans;
@@ -79,7 +79,7 @@ std::vector<double> soft_decoder::decode_soft(std::vector<double> const&) {
 binvector linear_soft_decoder::encode(binvector const& c) {
     fail(c.size() == dim(), "encode: incorrect input dim");
     binvector ans(length());
-    for (unsigned i = 0; i < dim(); i++) {
+    for (unsigned i = 0; i < dim(); ++i) {
         if (c[i]) {
             ans ^= G[i];
         }
