@@ -24,13 +24,21 @@ int main() {
 
 	int n, k;
 	fin >> n >> k;
-	matrix G(k, binvector(n));
-	fin >> G;
-	recursive_decoder* rd = new recursive_decoder(G);
+	std::vector<std::size_t> G(k, 0);
+	for (unsigned i = 0; i < k; i++) {
+		for (unsigned j = 0; j < n; j++) {
+			bool b;
+			fin >> b;
+			if (b) {
+				G[i] ^= (1ull << j);
+			}
+		}
+	}
+	recursive_decoder* rd = new recursive_decoder(n, G);
 
 	// plotkin_construction_decoder coder(rd, rd);
 	turbo_decoder coder(rd, rd);
-	// recursive_sdecoder coder(G);
+	// recursive_decoder coder(n, G);
 
 	// #ifdef PRINT_SECTION_TREE
 	// coder.printTree("Sectionalization.dot");

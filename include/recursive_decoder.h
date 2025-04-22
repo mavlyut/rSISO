@@ -4,8 +4,10 @@
 #include "decoder.h"
 #include "gray_code.h"
 
-struct recursive_decoder : public linear_soft_decoder {
-    recursive_decoder(matrix const&);
+struct recursive_decoder {
+	using matrix = std::vector<std::size_t>;
+
+    recursive_decoder(unsigned, matrix const&);
 
 private:
     class node {
@@ -40,7 +42,7 @@ private:
 
 	protected:
 		void __print(std::ostream&) const override;
-		double F(binvector const& c, std::vector<double> const& p0, std::vector<double> const& p1) const;
+		double F(std::size_t const& c, std::vector<double> const& p0, std::vector<double> const& p1) const;
         double LLR(double M0, double M1) const;
     };
 
@@ -119,20 +121,27 @@ private:
 	};
 
 public:
-	std::vector<double> decode_soft(std::vector<double> const&) override;
+	std::size_t encode(std::size_t const&);
+	std::vector<double> decode_soft(std::vector<double> const&);
+	std::pair<double, double> simulate(double snr, unsigned iter_cnt, unsigned max_error);
     void printTree(std::string const& fileName) const;
+	unsigned length() const;
+	unsigned dim() const;
 
 private:
+	unsigned n, k;
+	matrix G, G_enc;
 	std::vector<double> p0, p1;
 	std::vector<std::vector<unsigned>> _split;
 	std::vector<std::vector<unsigned>> _ctor;
-	std::vector<binvector> G;
 	node* root;
 
 	std::vector<double> L_out;
 
     void sectionalization();
     node* rec_build_section_tree(unsigned x, unsigned y);
+    static const double MAX_TRUNC;
+    static double truncate(double const&);
 };
 
 #endif // RECURSIVE_DECODER_H

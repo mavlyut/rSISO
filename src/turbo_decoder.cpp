@@ -1,6 +1,7 @@
 #include "../include/turbo_decoder.h"
+#include "../include/recursive_decoder.h"
 
-turbo_decoder::turbo_decoder(soft_decoder* dec_row, soft_decoder* dec_col)
+turbo_decoder::turbo_decoder(recursive_decoder* dec_row, recursive_decoder* dec_col)
     : soft_decoder(dec_row->length() * dec_col->length(), dec_row->dim() * dec_col->dim())
     , n1(dec_row->length()), n2(dec_col->length()), k1(dec_row->dim()), k2(dec_col->dim())
     , dec_row(dec_row), dec_col(dec_col)
@@ -19,14 +20,14 @@ binvector turbo_decoder::encode(binvector const& c) {
     for (unsigned i = 0; i < k2; i++) {
         auto row = dec_row->encode(c.subvector(k1 * i, k1 * (i + 1)));
         for (unsigned j = 0; j < n1; j++) {
-            enc1t[j].set(i, row[j]);
+            enc1t[j].set(i, ((row >> j) & 1));
         }
     }
     __log("Turbo.row_encoded:\n" << enc1t);
     for (unsigned j = 0; j < n1; j++) {
         auto row = dec_col->encode(enc1t[j]);
         for (unsigned i = 0; i < n2; i++) {
-            ans.set(i * n1 + j, row[i]);
+            ans.set(i * n1 + j, ((row >> i) & 1));
         }
     }
     __log("Turbo.encoded: " << ans << std::endl);

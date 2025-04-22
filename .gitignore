@@ -48,3 +48,4 @@ BKJR*
 codes/LDPC_*
 codes/LDPC_generator.cpp
 check.cpp
+output (copy).svg

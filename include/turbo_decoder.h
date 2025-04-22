@@ -2,9 +2,10 @@
 #define TURBO_DECODER_H
 
 #include "decoder.h"
+#include "recursive_decoder.h"
 
 struct turbo_decoder : public soft_decoder {
-    turbo_decoder(soft_decoder*, soft_decoder*);
+    turbo_decoder(recursive_decoder*, recursive_decoder*);
 
     binvector encode(binvector const& c) override;
     std::vector<double> decode_soft(std::vector<double> const&) override;
@@ -13,7 +14,7 @@ private:
     static const unsigned ITER_CNT;
 
     unsigned n1, n2, k1, k2;
-    soft_decoder *dec_row, *dec_col;
+    recursive_decoder *dec_row, *dec_col;
 
     binvector ans;
     matrix enc1t;
