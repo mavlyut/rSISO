@@ -2,7 +2,7 @@
 
 #include "../include/plotkin_construction_decoder.h"
 
-plotkin_construction_decoder::plotkin_construction_decoder(soft_decoder* dec1, soft_decoder* dec2)
+plotkin_construction_decoder::plotkin_construction_decoder(recursive_decoder* dec1, recursive_decoder* dec2)
         : soft_decoder(dec1->length() * 2, dec1->dim() + dec2->dim())
         , m(n / 2)
         , Lq0(m, 0), Lq1(m), Lq2(m), L_out(n), Lr(m)
@@ -11,6 +11,8 @@ plotkin_construction_decoder::plotkin_construction_decoder(soft_decoder* dec1, s
     __log("Pt, created" << std::endl);
 }
 
+#define getbit(v, i) (((v) >> (i)) & 1)
+
 binvector plotkin_construction_decoder::encode(binvector const& c) {
     fail(c.size() == dim(), "Pt, encode: incorrect dim");
     __log("Pt, encode: " << c << std::endl);
@@ -18,11 +20,11 @@ binvector plotkin_construction_decoder::encode(binvector const& c) {
     auto u2 = (dec2->encode(c.subvector(dec1->dim(), dec1->dim() + dec2->dim())) ^ u1);
     binvector ans(length());
     unsigned i = 0;
-    for (; i < u1.size(); ++i) {
-        ans.set(i, u1[i]);
+    for (; i < dec1->dim(); ++i) {
+        ans.set(i, getbit(u1, i));
     }
-    for (unsigned j = 0; j < u2.size(); ++i, ++j) {
-        ans.set(i, u2[j]);
+    for (unsigned j = 0; j < dec2->dim(); ++i, ++j) {
+        ans.set(i, getbit(u2, j));
     }
     return ans;
 }
@@ -48,7 +50,7 @@ std::vector<double> plotkin_construction_decoder::decode_soft(std::vector<double
     for (unsigned _t = 0; _t < MAX_ITER_COUNT; ++_t) {
         Lq0 = dec1->decode_soft(Lq0);
         Lq2 = dec2->decode_soft(Lq2);
-
+    
         for (unsigned j = 0; j < m; ++j) {
             Lr[j][0] = truncate((sign(Lq1[j]) * sign(Lq2[j])) * phi(phi(std::abs(Lq1[j])) + phi(std::abs(Lq2[j]))));
             Lr[j][1] = truncate((sign(Lq2[j]) * sign(Lq0[j])) * phi(phi(std::abs(Lq2[j])) + phi(std::abs(Lq0[j]))));

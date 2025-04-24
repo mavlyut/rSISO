@@ -72,14 +72,8 @@ small_gray_code::small_gray_code_iterator::small_gray_code_iterator(unsigned n, 
     : n(n), change_bit(UNINIT), tmp_num(tmp_num) {}
 
 small_gray_code::small_gray_code_iterator& small_gray_code::small_gray_code_iterator::operator++() {
-    std::size_t next_num = tmp_num + 1;
-    for (unsigned j = n; j-- > 0; ) {
-        if (((tmp_num >> j) & 1) != ((next_num >> j) & 1)) {
-            change_bit = j;
-            break;
-        }
-    }
-    tmp_num = next_num;
+    ++tmp_num;
+    change_bit = __builtin_ctzll(tmp_num);
     return *this;
 }
 

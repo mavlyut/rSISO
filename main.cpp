@@ -22,7 +22,31 @@ int main() {
 	// recursive_decoder* rd1 = new recursive_decoder(G1);
 	// recursive_decoder* rd2 = new recursive_decoder(G2);
 
-	int n, k;
+	// for (unsigned N = 1; N <= 32; N++) {
+	// 	small_gray_code code1(N);
+	// 	gray_code code2(N);
+	// 	auto it1 = code1.begin();
+	// 	auto it2 = code2.begin();
+	// 	bool fl = false;
+	// 	for (; it1 != code1.end() && it2 != code2.end(); ++it1, ++it2) {
+	// 		if (*it1 != *it2) {
+	// 			std::cerr << "Bad: " << N << " " << *it1 << " " << *it2 << std::endl;
+	// 			fl = true;
+	// 			break;
+	// 		}
+	// 	}
+	// 	if (fl) {
+	// 		continue;
+	// 	}
+	// 	if (!(it1 == code1.end() && it2 == code2.end())) {
+	// 		std::cerr << "Bad: " << N << std::endl;
+	// 		continue;
+	// 	}
+	// 	std::cout << "Good: " << N << std::endl;
+	// }
+	// return 0;
+
+	unsigned n, k;
 	fin >> n >> k;
 	std::vector<std::size_t> G(k, 0);
 	for (unsigned i = 0; i < k; i++) {
