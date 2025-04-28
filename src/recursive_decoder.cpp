@@ -440,7 +440,7 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 }
 
 std::vector<double> recursive_decoder::decode_soft(std::vector<_Float64> const& L_in) {
-	__log("Decode: " << L_in << std::endl);
+	__log("Recursive decoder, decode: " << L_in << std::endl);
 	for (unsigned i = 0; i < n; ++i) {
 		_Float64 L_exp = exp(truncate(L_in[i]));
 		_Float64 z = 1.0 + L_exp;
@@ -451,7 +451,7 @@ std::vector<double> recursive_decoder::decode_soft(std::vector<_Float64> const& 
 	time_measure(root->upward_pass(p0, p1));
 	time_measure(root->downward_pass(L_out));
 
-	__log("Ans   : " << L_out << std::endl);
+	__log("rSISO, decode ans: " << L_out << std::endl);
 	return L_out;
 }
 
@@ -490,16 +490,16 @@ double recursive_decoder::leaf::F(std::size_t const& c, std::vector<double> cons
 }
 
 double recursive_decoder::leaf::LLR(double M0, double M1) const {
-	if (M0 < EPS && M1 < EPS) {
-		// __log("Leaf, LLR: nan" << std::endl);
-		return NAN;
-	} else if (M0 < EPS) {
-		// __log("Leaf, LLR: -inf" << std::endl);
-		return -INF;
-	} else if (M1 < EPS) {
-		// __log("Leaf, LLR: inf" << std::endl);
-		return INF;
-	}
+	// if (M0 < EPS && M1 < EPS) {
+	// 	// __log("Leaf, LLR: nan" << std::endl);
+	// 	return NAN;
+	// } else if (M0 < EPS) {
+	// 	// __log("Leaf, LLR: -inf" << std::endl);
+	// 	return -INF;
+	// } else if (M1 < EPS) {
+	// 	// __log("Leaf, LLR: inf" << std::endl);
+	// 	return INF;
+	// }
 	return truncate(log(M0 / M1));
 }
 

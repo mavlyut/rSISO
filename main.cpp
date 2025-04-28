@@ -1,4 +1,3 @@
-// #include "include/trust_propagation_decoder.h"
 #include "include/recursive_decoder.h"
 #include "include/turbo_decoder.h"
 #include "include/plotkin_construction_decoder.h"
@@ -13,14 +12,6 @@ int main() {
 	std::ofstream fout("output.txt");
 #endif
 	// fout << std::scientific;
-
-	// int n, k1, k2;
-	// fin >> n >> k1 >> k2;
-	// matrix G1(k1, binvector(n));
-	// matrix G2(k2, binvector(n));
-	// fin >> G1 >> G2;
-	// recursive_decoder* rd1 = new recursive_decoder(G1);
-	// recursive_decoder* rd2 = new recursive_decoder(G2);
 
 	// for (unsigned N = 1; N <= 32; N++) {
 	// 	small_gray_code code1(N);
@@ -46,22 +37,43 @@ int main() {
 	// }
 	// return 0;
 
-	unsigned n, k;
-	fin >> n >> k;
-	std::vector<std::size_t> G(k, 0);
-	for (unsigned i = 0; i < k; i++) {
+	unsigned n, k1, k2;
+	fin >> n >> k1 >> k2;
+	std::vector<std::size_t> G1(k1, 0), G2(k2, 0);
+	for (unsigned i = 0; i < k1; i++) {
 		for (unsigned j = 0; j < n; j++) {
 			bool b;
 			fin >> b;
 			if (b) {
-				G[i] ^= (1ull << j);
+				G1[i] ^= (1ull << j);
 			}
 		}
 	}
-	recursive_decoder* rd = new recursive_decoder(n, G);
+	for (unsigned i = 0; i < k2; i++) {
+		for (unsigned j = 0; j < n; j++) {
+			bool b;
+			fin >> b;
+			if (b) {
+				G2[i] ^= (1ull << j);
+			}
+		}
+	}
+	recursive_decoder* rd1 = new recursive_decoder(n, G1);
+	recursive_decoder* rd2 = new recursive_decoder(n, G2);
+	plotkin_construction_decoder coder(rd1, rd2);
 
-	// plotkin_construction_decoder coder(rd, rd);
-	turbo_decoder coder(rd, rd);
+	// unsigned n, k;
+	// fin >> n >> k;
+	// std::vector<std::size_t> G(k, 0);
+	// for (unsigned i = 0; i < k; i++) {
+	// 	for (unsigned j = 0; j < n; j++) {
+	// 		bool b;
+	// 		fin >> b;
+	// 		if (b) {
+	// 			G[i] ^= (1ull << j);
+	// 		}
+	// 	}
+	// }
 	// recursive_decoder coder(n, G);
 
 	// #ifdef PRINT_SECTION_TREE
