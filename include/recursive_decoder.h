@@ -48,6 +48,7 @@ private:
     protected:
 		std::vector<double> P0, P1;
 		std::vector<std::vector<double>> A0, A1;
+		std::vector<std::vector<double>> A0_ext, A1_ext;
 
         void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
 		void downward_pass(std::vector<double>& L) override;

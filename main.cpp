@@ -37,30 +37,45 @@ int main() {
 	// }
 	// return 0;
 
-	unsigned n, k1, k2;
-	fin >> n >> k1 >> k2;
-	std::vector<std::size_t> G1(k1, 0), G2(k2, 0);
-	for (unsigned i = 0; i < k1; i++) {
+	// unsigned n, k1, k2;
+	// fin >> n >> k1 >> k2;
+	// std::vector<std::size_t> G1(k1, 0), G2(k2, 0);
+	// for (unsigned i = 0; i < k1; i++) {
+	// 	for (unsigned j = 0; j < n; j++) {
+	// 		bool b;
+	// 		fin >> b;
+	// 		if (b) {
+	// 			G1[i] ^= (1ull << j);
+	// 		}
+	// 	}
+	// }
+	// for (unsigned i = 0; i < k2; i++) {
+	// 	for (unsigned j = 0; j < n; j++) {
+	// 		bool b;
+	// 		fin >> b;
+	// 		if (b) {
+	// 			G2[i] ^= (1ull << j);
+	// 		}
+	// 	}
+	// }
+
+	unsigned n, k;
+	fin >> n >> k;
+	std::vector<std::size_t> G(k, 0);
+	for (unsigned i = 0; i < k; i++) {
 		for (unsigned j = 0; j < n; j++) {
 			bool b;
 			fin >> b;
 			if (b) {
-				G1[i] ^= (1ull << j);
+				G[i] ^= (1ull << j);
 			}
 		}
 	}
-	for (unsigned i = 0; i < k2; i++) {
-		for (unsigned j = 0; j < n; j++) {
-			bool b;
-			fin >> b;
-			if (b) {
-				G2[i] ^= (1ull << j);
-			}
-		}
-	}
-	recursive_decoder* rd1 = new recursive_decoder(n, G1);
-	recursive_decoder* rd2 = new recursive_decoder(n, G2);
-	plotkin_construction_decoder coder(rd1, rd2);
+
+	recursive_decoder coder(n, G);
+	// recursive_decoder* rd1 = new recursive_decoder(n, G1);
+	// recursive_decoder* rd2 = new recursive_decoder(n, G2);
+	// plotkin_construction_decoder coder(rd1, rd2);
 
 	// unsigned n, k;
 	// fin >> n >> k;

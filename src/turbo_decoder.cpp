@@ -47,13 +47,19 @@ std::vector<double> turbo_decoder::decode_soft(std::vector<double> const& L0) {
             }
             auto colDec = dec_col->decode_soft(colL);
             for (unsigned j = 0; j < n2; ++j) {
-                dec2t[j][i] = colDec[j];
+                dec2t[j][i] = colL[j] + colDec[j];
+                // dec2t[j][i] = colL[j] + 0.35 * colDec[j];
+                // dec2t[j][i] = colL[j] + 0.35 * (colDec[j] - colL[j]);
+                // dec2t[j][i] = colDec[j];
             }
         }
         for (unsigned j = 0; j < n2; ++j) {
             auto row = dec_row->decode_soft(dec2t[j]);
             for (unsigned i = 0; i < n1; ++i) {
-                L_out[j * n1 + i] = row[i];
+                L_out[j * n1 + i] = dec2t[j][i] + row[i];
+                // L_out[j * n1 + i] = dec2t[j][i] + 0.35 * row[i];
+                // L_out[j * n1 + i] = dec2t[j][i] + 0.35 * (row[i] - dec2t[j][i]);
+                // L_out[j * n1 + i] = row[i];
             }
         }
         __log("Turbo.decoded, iter=" << cnt + 1 << ": " << L_out << std::endl);

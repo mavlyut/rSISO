@@ -14,6 +14,8 @@ struct plotkin_construction_decoder {
     unsigned length() const;
     unsigned dim() const;
 
+    void printGraph(unsigned iter_num, unsigned state);
+
 private:
     unsigned n, m, k;
     recursive_decoder *dec1, *dec2;

@@ -117,13 +117,14 @@ unsigned recursive_decoder::dim() const {
 }
 
 std::size_t recursive_decoder::encode(std::size_t const& c) {
-	printbv("Encode: ", k, c); __log(std::endl);
+	printbv("rSISO, encode: ", k, c); __log(std::endl);
     std::size_t ans = 0;
     for (unsigned i = 0; i < k; ++i) {
         if (getbit(c, i)) {
             ans ^= G_enc[i];
         }
     }
+	printbv("rSISO, encode, ans: ", n, ans); __log(std::endl);
     return ans;
 }
 
