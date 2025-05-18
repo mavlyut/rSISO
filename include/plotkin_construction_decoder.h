@@ -14,13 +14,12 @@ struct plotkin_construction_decoder {
     unsigned length() const;
     unsigned dim() const;
 
-    void printGraph(unsigned iter_num, unsigned state);
-
 private:
     unsigned n, m, k;
     recursive_decoder *dec1, *dec2;
     std::vector<double> Lq0, Lq1, Lq2, L_out;
-    std::vector<std::array<double, 3>> Lr;
+    std::vector<double> Lr0, Lr1, Lr2;
+    std::vector<double> L_ext_0, L_ext_2;
 
     static const unsigned MAX_ITER_COUNT;
     static inline double phi(double);
