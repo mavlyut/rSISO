@@ -42,13 +42,22 @@ private:
         double LLR(double M0, double M1) const;
     };
 
+	struct leaf_full_code : public leaf {
+		leaf_full_code(unsigned x, unsigned y);
+
+        void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
+		void downward_pass(std::vector<double>& L) override;
+	
+	private:
+		std::vector<double> L_ans;
+	};
+
     struct leaf_no_simplify : public leaf {
 		leaf_no_simplify(unsigned x, unsigned y, unsigned k1, matrix const& Gp);
 
     protected:
 		std::vector<double> P0, P1;
 		std::vector<std::vector<double>> A0, A1;
-		std::vector<std::vector<double>> A0_ext, A1_ext;
 
         void upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) override;
 		void downward_pass(std::vector<double>& L) override;

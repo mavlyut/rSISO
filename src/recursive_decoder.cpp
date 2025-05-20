@@ -96,18 +96,19 @@ bool lin_indep(unsigned n, std::vector<std::size_t> const& M, std::size_t const&
 }
 
 recursive_decoder::recursive_decoder(unsigned n, matrix const& _G) : n(n), k(_G.size()), G(_G), G_enc(_G), L_out(n) {
-	time_measure(minimal_span_form(n, G));
+	fail(k >= 1, "rSISO-ctor: empty code");
+	minimal_span_form(n, G);
 
 	printmatrix("MSF:", n, G);
 
 	p0.resize(n);
 	p1.resize(n);
 	_split = std::vector(n + 1, std::vector<unsigned>(n + 1, UNINIT));
-	_ctor = std::vector(n + 1, std::vector<unsigned>(n + 1, 0));
-	time_measure(sectionalization());
-	time_measure(root = rec_build_section_tree(0, n));
+	_ctor = std::vector(n + 1, std::vector<unsigned>(n + 1, -1));
+	sectionalization();
+	root = rec_build_section_tree(0, n);
 }
-
+	
 unsigned recursive_decoder::length() const {
 	return n;
 }
@@ -206,10 +207,14 @@ void recursive_decoder::sectionalization() {
 					++k3;
 				}
 			}
-			// __log("segment " << x << " " << y << std::endl);
 			gauss(y - x, Gp);
 			_Gp_size[x][y] = Gp.size();
 			_Gs_size[x][y] = k3;
+
+			if (k3 == y - x) {
+				update_phi(phi_u_l, x, y, y - x, 0);
+				update_phi(phi_d_l, x, y, 0, 0);
+			}
 
 			#ifdef ENABLE_OPT_1
 			if (Gp.size() == 1 && Gp[0] == ((1ull << (y - x)) - 1) && k3 == 1) {
@@ -226,7 +231,7 @@ void recursive_decoder::sectionalization() {
 			#endif
 
 			#ifdef ENABLE_OPT_3
-			if (Gp.size() == 2 && y - x == 2) {
+			if (Gp.size() == 2 && y - x == 2 && k3 != 2) {
 				update_phi(phi_u_l, x, y, 6, 3);
 				update_phi(phi_d_l, x, y, 8, 3);
 			}
@@ -243,8 +248,8 @@ void recursive_decoder::sectionalization() {
 
 	for (unsigned x = 0; x <= n; ++x) {
 		for (unsigned y = x + 1; y <= n; ++y) {
-			update_phi(phi_u_l, x, y, (1ull << _Gp_size[x][y]) * (2 * (y - x) - 1), 0);
-			update_phi(phi_d_l, x, y, ((1ull << (_Gp_size[x][y] - _Gs_size[x][y] + 1))) * (y - x + 1) + 2 * (y - x), 0);
+			update_phi(phi_u_l, x, y, (1ull << _Gp_size[x][y]) * (2 * (y - x) - 1), -1);
+			update_phi(phi_d_l, x, y, ((1ull << (_Gp_size[x][y] - _Gs_size[x][y] + 1))) * (y - x + 1) + 2 * (y - x), -1);
 			for (unsigned z = x + 1; z < y - 1; ++z) {
 				unsigned k1_k2 = _Gp_size[x][y] - _Gs_size[x][z] - _Gs_size[z][y];
 				update_uninit(phi_u_c[x][y][z], (1ull << (k1_k2 + 1)));
@@ -274,6 +279,10 @@ void recursive_decoder::sectionalization() {
 	#ifdef INIT_COUNTS
 	std::cout << "Expected operations: " << get_phi(0, n) << std::endl;
 	#endif
+
+	if (_split[0][n] == -1) {
+		_split[0][n] = n / 2;
+	}
 
 	__log("Gp_sz:  " << _Gp_size << "\nGs_sz:  " << _Gs_size << std::endl);
 	__log("split: " << _split << std::endl);
@@ -305,6 +314,14 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 		}
 
 		unsigned optimizationNo = _ctor[x][y];
+
+		if (optimizationNo == 0) {
+			fail(k1 == 0 && Gp.size() == y - x, "incorrect pre-conditions (0)");
+			__log("Leaf with full code: " << x << " " << y << std::endl);
+			std::cout << x << " " << y << " -> k1=" << k1 << ", Gp.size()=" << Gp.size() << std::endl;
+			return new leaf_full_code(x, y);
+		}
+
 		#ifdef ENABLE_OPT_1
 		if (optimizationNo == 1) {
 			fail(k1 == 0 && Gp.size() == 1 && Gp[0] == ((1ull << (y - x)) - 1), "incorrect pre-conditions (1)");
@@ -356,11 +373,6 @@ recursive_decoder::node* recursive_decoder::rec_build_section_tree(unsigned x, u
 			_G1.push_back(append);
 		}
 	}
-
-	// __log("build, inner, splitting matrix\n");
-	// printmatrix("Gp", y - x, Gp);
-	// printmatrix("G0", y - x, _G0);
-	// printmatrix("G1", y - x, _G1);
 
 	matrix G_0, G_1;
 	unsigned k1 = 0, k2 = 0;
@@ -449,8 +461,8 @@ std::vector<double> recursive_decoder::decode_soft(std::vector<_Float64> const& 
 		p1[i] = 1.0 / z;
 	}
 
-	time_measure(root->upward_pass(p0, p1));
-	time_measure(root->downward_pass(L_out));
+	root->upward_pass(p0, p1);
+	root->downward_pass(L_out);
 
 	__log("rSISO, decode ans: " << L_out << std::endl);
 	return L_out;
@@ -491,20 +503,32 @@ double recursive_decoder::leaf::F(std::size_t const& c, std::vector<double> cons
 }
 
 double recursive_decoder::leaf::LLR(double M0, double M1) const {
-	// if (M0 < EPS && M1 < EPS) {
-	// 	// __log("Leaf, LLR: nan" << std::endl);
-	// 	return NAN;
-	// } else if (M0 < EPS) {
-	// 	// __log("Leaf, LLR: -inf" << std::endl);
-	// 	return -INF;
-	// } else if (M1 < EPS) {
-	// 	// __log("Leaf, LLR: inf" << std::endl);
-	// 	return INF;
-	// }
 	return truncate(log(M0 / M1));
 }
 
 void recursive_decoder::leaf::__print(std::ostream&) const {}
+
+recursive_decoder::matrix get_e(unsigned sz) {
+	recursive_decoder::matrix ans(sz);
+	for (unsigned i = 0; i < sz; ++i) {
+		ans[i] |= (1ull << i);
+	}
+	return ans;
+}
+
+recursive_decoder::leaf_full_code::leaf_full_code(unsigned x, unsigned y) : leaf(x, y, 0, get_e(y - x)), L_ans(y - x) {}
+
+void recursive_decoder::leaf_full_code::upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) {
+	for (unsigned i = x, j = 0; i < y; ++i, ++j) {
+		L_ans[j] = LLR(p0[i], p1[i]);
+	}
+}
+
+void recursive_decoder::leaf_full_code::downward_pass(std::vector<double>& L) {
+	for (unsigned i = x, j = 0; i < y; ++i, ++j) {
+		L[i] = L_ans[j];
+	}
+}
 
 recursive_decoder::leaf_no_simplify::leaf_no_simplify(unsigned x, unsigned y, unsigned k1, matrix const& Gp)
 	: leaf(x, y, k1, Gp), P0(y - x), P1(y - x)

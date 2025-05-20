@@ -24,23 +24,6 @@ static const unsigned UNINIT = -1;
 static const unsigned chunk_size = 64;
 
 typedef std::chrono::milliseconds ms;
-#define __time_measure_with_msg(msg, line)									\
-	auto start = std::chrono::system_clock::now();							\
-	line;																	\
-	auto end = std::chrono::system_clock::now();							\
-	auto time_in_ms = std::chrono::duration_cast<ms>(end - start).count();	\
-	_log_time << msg << ": "												\
-			  << (time_in_ms > 1000 ? (time_in_ms / 1000.0) : time_in_ms)	\
-			  << (time_in_ms > 1000 ? "s" : "ms") << std::endl;
-#define __time_measure(line) \
-	__time_measure_with_msg("Instruction: \"" #line "\"", line)
-
-#if defined(TIMELOG) && !defined(TEST)
-inline std::ofstream _log_time("_log_time");
-#define time_measure(line) { __time_measure(line) }
-#else
-#define time_measure(line) line
-#endif
 
 #if defined(LOG) && !defined(TEST)
 inline std::ofstream _log_out("_log_out");

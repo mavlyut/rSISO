@@ -34,7 +34,7 @@ matrix generate_RM(int r, int m) {
     for (unsigned i = 0; i < G2.size(); i++) {
         binvector row(1ull << m);
         for (unsigned j = 0; j < sh; j++) {
-            row.set(j, G2[i][j]);
+            row.set(j + sh, G2[i][j]);
         }
         G.push_back(row);
     }
@@ -42,9 +42,9 @@ matrix generate_RM(int r, int m) {
 }
 
 int main() {
-    matrix G = generate_RM(2, 5);
+    matrix G = generate_RM(2, 2);
     unsigned k = G.size(), n = G.front().size();
-    std::ofstream fout("RM_" + std::to_string(n) + "_" + std::to_string(k) + ".txt");
+    std::ofstream fout("codes/RM_" + std::to_string(n) + "_" + std::to_string(k) + ".txt");
     fout << n << " " << k << "\n" << G;
     std::cout << "RM (" << n << "," << k << ") generated\n";
 }
