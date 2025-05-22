@@ -19,18 +19,20 @@
 
 unsigned iter_cnt = 10000, max_error = 100;
 
+using namespace short_domain;
+
 matrix generate_RM(unsigned r, unsigned m) {
     if (r == 0) {
         matrix G(1, binvector(1ull << m));
         for (unsigned i = 0; i < (1ull << m); i++) {
-            G[0].set(i, true);
+            setbit(G[0], i, true);
         }
         return G;
     }
     if (r == m) {
         matrix G(1ull << m, binvector(1ull << m));
         for (unsigned i = 0; i < (1ull << m); i++) {
-            G[i].set(i, true);
+            setbit(G[i], i, true);
         }
         return G;
     }
@@ -40,15 +42,15 @@ matrix generate_RM(unsigned r, unsigned m) {
     for (unsigned i = 0; i < G1.size(); i++) {
         binvector row(1ull << m);
         for (unsigned j = 0; j < sh; j++) {
-            row.set(j, G1[i][j]);
-            row.set(j + sh, G1[i][j]);
+            setbit(row, j, getbit(G1[i], j));
+            setbit(row, j + sh, getbit(G1[i], j));
         }
         G.push_back(row);
     }
     for (unsigned i = 0; i < G2.size(); i++) {
         binvector row(1ull << m);
         for (unsigned j = 0; j < sh; j++) {
-            row.set(j + sh, G2[i][j]);
+            setbit(row, j + sh, getbit(G2[i], j));
         }
         G.push_back(row);
     }
@@ -61,26 +63,15 @@ int main() {
 	std::ofstream fout("output.txt");
 
     unsigned R = 2, M = 5;
-    matrix __G1 = generate_RM(R, M), __G2 = generate_RM(R - 1, M);
-    fail(__G1.front().size() == __G2.front().size(), "Main3: incompatible sizes");
-	unsigned m = __G1.front().size(), k1 = __G1.size(), k2 = __G2.size();
+    matrix G1 = generate_RM(R, M), G2 = generate_RM(R - 1, M);
+	unsigned m = (1ull << M), k1 = G1.size(), k2 = G2.size();
     std::cout << "Generated: (" << m << "," << k1 << ") and (" << m << "," << k2 << ")" << std::endl;
 	unsigned n = 2 * m, k = k1 + k2;
-	std::vector<std::size_t> G1(k1, 0), G2(k2, 0), G(k, 0);
+	matrix G(k, 0);
 	for (unsigned i = 0; i < k1; i++) {
-        for (unsigned j = 0; j < n; j++) {
-            if (__G1[i][j]) {
-                G1[i] |= (1ull << j);
-            }
-        }
 		G[i] = (G1[i] | (G1[i] << m));
 	}
 	for (unsigned i = 0; i < k2; i++) {
-        for (unsigned j = 0; j < n; j++) {
-            if (__G2[i][j]) {
-                G2[i] |= (1ull << j);
-            }
-        }
 		G[i + k1] = (G2[i] << m);
 	}
 	recursive_decoder* rd1 = new recursive_decoder(m, G1);

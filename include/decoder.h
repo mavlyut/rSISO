@@ -3,41 +3,54 @@
 
 #include "matrix.h"
 
-struct decoder {
-    decoder(unsigned n, unsigned k);
-    virtual ~decoder();
+#define MAX_TRUNC 16
 
-    virtual binvector encode(binvector const&);
-    virtual binvector decode(std::vector<double> const&);
-    virtual std::pair<double, double> simulate(_Float64, unsigned, unsigned);
+static double truncate(double const& a) {
+    if (a > MAX_TRUNC) {
+        return MAX_TRUNC;
+    }
+    if (a < -MAX_TRUNC) {
+        return -MAX_TRUNC;
+    }
+    return a;
+}
 
-    unsigned length() const;
-    unsigned dim() const;
+namespace short_domain {
+    struct soft_decoder {
+        soft_decoder(unsigned n, unsigned k);
+        virtual ~soft_decoder();
 
-protected:
-    unsigned n, k;
-};
+        virtual binvector encode(binvector const&);
 
-struct soft_decoder : public decoder {
-    soft_decoder(unsigned n, unsigned k);
-    virtual ~soft_decoder();
+        virtual binvector decode(std::vector<double> const&);
+        virtual std::vector<double> decode_soft(std::vector<double> const&);
 
-    virtual std::vector<double> decode_soft(std::vector<double> const&);
-    binvector decode(std::vector<double> const&) override;
+        virtual std::pair<double, double> simulate(_Float64 snr, unsigned iter_cnt, unsigned max_error);
 
-protected:
-    static const double MAX_TRUNC;
-    static double truncate(double const&);
-};
+        unsigned length() const;
+        unsigned dim() const;
 
-struct linear_soft_decoder : public soft_decoder {
-    linear_soft_decoder(matrix const&);
-    virtual ~linear_soft_decoder();
+    protected:
+        unsigned n, k;
+    };
+}
 
-    binvector encode(binvector const&) override;
+namespace long_domain {
+    struct soft_decoder {
+        soft_decoder(unsigned n, unsigned k);
+        virtual ~soft_decoder();
 
-protected:
-    matrix const G;
-};
+        virtual binvector encode(binvector const&);
+        virtual binvector decode(std::vector<double> const&);
+        virtual std::pair<double, double> simulate(_Float64 snr, unsigned iter_cnt, unsigned max_error);
+        virtual std::vector<double> decode_soft(std::vector<double> const&);
+
+        unsigned length() const;
+        unsigned dim() const;
+
+    private:
+        unsigned n, k;
+    };
+}
 
 #endif // DECODER_H

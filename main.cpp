@@ -1,6 +1,7 @@
 #include "include/recursive_decoder.h"
 #include "include/turbo_decoder.h"
-#include "include/plotkin_construction_decoder.h"
+
+using namespace short_domain;
 
 int main() {
 	srand(time(NULL));
@@ -13,84 +14,21 @@ int main() {
 #endif
 	// fout << std::scientific;
 
-	// for (unsigned N = 1; N <= 32; N++) {
-	// 	small_gray_code code1(N);
-	// 	gray_code code2(N);
-	// 	auto it1 = code1.begin();
-	// 	auto it2 = code2.begin();
-	// 	bool fl = false;
-	// 	for (; it1 != code1.end() && it2 != code2.end(); ++it1, ++it2) {
-	// 		if (*it1 != *it2) {
-	// 			std::cerr << "Bad: " << N << " " << *it1 << " " << *it2 << std::endl;
-	// 			fl = true;
-	// 			break;
-	// 		}
-	// 	}
-	// 	if (fl) {
-	// 		continue;
-	// 	}
-	// 	if (!(it1 == code1.end() && it2 == code2.end())) {
-	// 		std::cerr << "Bad: " << N << std::endl;
-	// 		continue;
-	// 	}
-	// 	std::cout << "Good: " << N << std::endl;
-	// }
-	// return 0;
-
-	// unsigned n, k1, k2;
-	// fin >> n >> k1 >> k2;
-	// std::vector<std::size_t> G1(k1, 0), G2(k2, 0);
-	// for (unsigned i = 0; i < k1; i++) {
-	// 	for (unsigned j = 0; j < n; j++) {
-	// 		bool b;
-	// 		fin >> b;
-	// 		if (b) {
-	// 			G1[i] ^= (1ull << j);
-	// 		}
-	// 	}
-	// }
-	// for (unsigned i = 0; i < k2; i++) {
-	// 	for (unsigned j = 0; j < n; j++) {
-	// 		bool b;
-	// 		fin >> b;
-	// 		if (b) {
-	// 			G2[i] ^= (1ull << j);
-	// 		}
-	// 	}
-	// }
-
 	unsigned n, k;
 	fin >> n >> k;
-	std::vector<std::size_t> G(k, 0);
+	matrix G(k, 0);
 	for (unsigned i = 0; i < k; i++) {
 		for (unsigned j = 0; j < n; j++) {
 			bool b;
 			fin >> b;
-			if (b) {
-				G[i] ^= (1ull << j);
-			}
+			setbit(G[i], j, b);
 		}
 	}
+	printmatrix(std::cerr, n, G);
 
 	recursive_decoder coder(n, G);
-	// recursive_decoder* rd1 = new recursive_decoder(n, G1);
-	// recursive_decoder* rd2 = new recursive_decoder(n, G2);
-	// plotkin_construction_decoder coder(rd1, rd2);
 
-	// unsigned n, k;
-	// fin >> n >> k;
-	// std::vector<std::size_t> G(k, 0);
-	// for (unsigned i = 0; i < k; i++) {
-	// 	for (unsigned j = 0; j < n; j++) {
-	// 		bool b;
-	// 		fin >> b;
-	// 		if (b) {
-	// 			G[i] ^= (1ull << j);
-	// 		}
-	// 	}
-	// }
-	// recursive_decoder coder(n, G);
-
+	std::cerr << "Constructed!" << std::endl;
 	// #ifdef PRINT_SECTION_TREE
 	// coder.printTree("Sectionalization.dot");
 	// #endif
@@ -118,7 +56,7 @@ int main() {
 			std::getline(fin, command);
 			continue;
 		} else if (command == "Encode") {
-			binvector x(coder.dim());
+			binvector x;
 			fin >> x;
 			fout << coder.encode(x);
 		} else if (command == "Decode") {

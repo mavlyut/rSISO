@@ -50,3 +50,4 @@ codes/LDPC_generator.cpp
 check.cpp
 output (*).svg
 img/*
+.todo

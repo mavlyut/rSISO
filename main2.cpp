@@ -19,6 +19,8 @@
 
 unsigned iter_cnt = 100000, max_error = 100;
 
+using namespace short_domain;
+
 int main() {
 	srand(time(NULL));
 
@@ -28,7 +30,7 @@ int main() {
 	unsigned m, k1, k2;
 	fin >> m >> k1 >> k2;
 	unsigned n = 2 * m, k = k1 + k2;
-	std::vector<std::size_t> G1(k1, 0), G2(k2, 0), G(k, 0);
+	matrix G1(k1, 0), G2(k2, 0), G(k, 0);
 	for (unsigned i = 0; i < k1; i++) {
 		for (unsigned j = 0; j < m; j++) {
 			bool b;
@@ -64,55 +66,55 @@ int main() {
 		auto start = std::chrono::system_clock::now();
 
 		_Float64 sigma = sqrt(0.5 * pow(10.0, -snr / 10.0) * n / k);
-			std::normal_distribution<_Float64> norm(0.0, sigma);
-			unsigned errr_pt = 0, berr_pt = 0;
-			unsigned errr_rec = 0, berr_rec = 0;
-			unsigned sim_cnt = 0;
-			while ((errr_pt < max_error || errr_rec < max_error) && sim_cnt < iter_cnt) {
-				std::size_t x = 0;
-				for (unsigned t = 0; t < k; ++t) {
-					if (rand() % 2) {
-						x |= (1ull << t);
-					}
+		std::normal_distribution<_Float64> norm(0.0, sigma);
+		unsigned errr_pt = 0, berr_pt = 0;
+		unsigned errr_rec = 0, berr_rec = 0;
+		unsigned sim_cnt = 0;
+		while ((errr_pt < max_error || errr_rec < max_error) && sim_cnt < iter_cnt) {
+			std::size_t x = 0;
+			for (unsigned t = 0; t < k; ++t) {
+				if (rand() % 2) {
+					x |= (1ull << t);
 				}
-				std::size_t enc = pt_coder.encode(x);
-				fail(enc == rSISO_coder.encode(x), "Main2: encoded vectors aren't equals");
-				_Float64 coef = 2.0f / (sigma * sigma);
-				std::vector<_Float64> L_in(n);
-				for (unsigned t = 0; t < n; ++t) {
-					L_in[t] = coef * ((((enc >> t) & 1) ? -1 : 1) + norm(gen));
-				}
-
-				{
-					std::vector<double> soft_dec = pt_coder.decode_soft(L_in);
-					std::size_t dec = 0;
-					for (unsigned t = 0; t < n; ++t) {
-						if (soft_dec[t] < 0) {
-							dec |= (1ull << t);
-						}
-						if ((soft_dec[t] < 0) != ((enc >> t) & 1)) {
-							++berr_pt;
-						}
-					}
-					errr_pt += (dec != enc);
-				}
-
-				{
-					std::vector<double> soft_dec = rSISO_coder.decode_soft(L_in);
-					std::size_t dec = 0;
-					for (unsigned t = 0; t < n; ++t) {
-						if (soft_dec[t] < 0) {
-							dec |= (1ull << t);
-						}
-						if ((soft_dec[t] < 0) != ((enc >> t) & 1)) {
-							++berr_rec;
-						}
-					}
-					errr_rec += (dec != enc);
-				}
-
-				++sim_cnt;
 			}
+			std::size_t enc = pt_coder.encode(x);
+			fail(enc == rSISO_coder.encode(x), "Main2: encoded vectors aren't equals");
+			_Float64 coef = 2.0f / (sigma * sigma);
+			std::vector<_Float64> L_in(n);
+			for (unsigned t = 0; t < n; ++t) {
+				L_in[t] = coef * ((((enc >> t) & 1) ? -1 : 1) + norm(gen));
+			}
+
+			{
+				std::vector<double> soft_dec = pt_coder.decode_soft(L_in);
+				std::size_t dec = 0;
+				for (unsigned t = 0; t < n; ++t) {
+					if (soft_dec[t] < 0) {
+						dec |= (1ull << t);
+					}
+					if ((soft_dec[t] < 0) != ((enc >> t) & 1)) {
+						++berr_pt;
+					}
+				}
+				errr_pt += (dec != enc);
+			}
+
+			{
+				std::vector<double> soft_dec = rSISO_coder.decode_soft(L_in);
+				std::size_t dec = 0;
+				for (unsigned t = 0; t < n; ++t) {
+					if (soft_dec[t] < 0) {
+						dec |= (1ull << t);
+					}
+					if ((soft_dec[t] < 0) != ((enc >> t) & 1)) {
+						++berr_rec;
+					}
+				}
+				errr_rec += (dec != enc);
+			}
+
+			++sim_cnt;
+		}
 
 		auto end = std::chrono::system_clock::now();
 		auto time_in_ms = std::chrono::duration_cast<ms>(end - start).count();

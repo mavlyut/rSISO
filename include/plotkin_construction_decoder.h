@@ -4,25 +4,25 @@
 #include "decoder.h"
 #include "recursive_decoder.h"
 
-struct plotkin_construction_decoder {
-    plotkin_construction_decoder(recursive_decoder* dec1, recursive_decoder* dec2);
+namespace short_domain {
+    struct plotkin_construction_decoder : soft_decoder {
+        plotkin_construction_decoder(soft_decoder* dec1, soft_decoder* dec2);
 
-    std::size_t encode(std::size_t const&) const;
-    std::vector<double> decode_soft(std::vector<double> const&);
-	std::pair<double, double> simulate(double snr, unsigned iter_cnt, unsigned max_error);
+        binvector encode(binvector const& x) override;
+        std::vector<double> decode_soft(std::vector<double> const&) override;
 
-    unsigned length() const;
-    unsigned dim() const;
+    private:
+        static const unsigned MAX_ITER_COUNT;
 
-private:
-    unsigned n, m, k;
-    recursive_decoder *dec1, *dec2;
-    std::vector<double> Lq0, Lq1, Lq2, L_out;
-    std::vector<double> Lr0, Lr1, Lr2;
-    std::vector<double> L_ext_0, L_ext_2;
+        unsigned m;
+        soft_decoder *dec1, *dec2;
 
-    static const unsigned MAX_ITER_COUNT;
-    static inline double phi(double);
-};
+        std::vector<double> Lq0, Lq1, Lq2, L_out;
+        std::vector<double> Lr0, Lr1, Lr2;
+        std::vector<double> L_ext_0, L_ext_2;
+
+        static inline double phi(double);
+    };
+}
 
 #endif // PLOTKIN_CONSTRUCTION_DECODER_H
