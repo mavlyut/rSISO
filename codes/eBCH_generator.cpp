@@ -376,7 +376,7 @@ int main() {
     fout << N << " " << K << "\n";
 
     for (int i = 0; i < K; i++) {
-        binvector row(N);
+        long_domain::binvector row(N);
         bool parity = false;
         for (int j = 0; i + j < N - 1 && j <= g.getDeg(); j++) {
             row.set(i + j, g[j]);

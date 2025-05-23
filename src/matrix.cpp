@@ -89,7 +89,7 @@ namespace short_domain {
 	}
 
     std::ostream& printmatrix(std::ostream& out, std::string const& msg, unsigned n, matrix const& M) {
-		out << msg;
+		out << msg << "\n";
 		for (binvector const& bv : M) {
 			printbv(out, n, bv);
 			out << "\n";
@@ -198,7 +198,7 @@ namespace long_domain {
 	}
 
     std::ostream& printmatrix(std::ostream& out, std::string const& msg, unsigned n, matrix const& M) {
-		out << msg;
+		out << msg << "\n";
 		for (binvector const& bv : M) {
 			printbv(out, n, bv);
 			out << "\n";

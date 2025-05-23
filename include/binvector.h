@@ -20,6 +20,7 @@
 namespace short_domain {
 	using binvector = std::uint64_t;
 
+	binvector get_empty(unsigned sz);
 	bool getbit(binvector const& v, unsigned i);
 	binvector& setbit(binvector& v, unsigned i, bool b);
 	binvector& changebit(binvector& v, unsigned i);
@@ -221,6 +222,7 @@ namespace long_domain {
 
 	using binvector = __binvector<std::size_t, 32>;
 
+	binvector get_empty(unsigned sz);
 	bool getbit(binvector const& v, unsigned i);
 	binvector& setbit(binvector& v, unsigned i, bool b);
 	binvector& changebit(binvector& v, unsigned i);

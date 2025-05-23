@@ -2,6 +2,8 @@
 
 #include "../include/matrix.h"
 
+using namespace long_domain;
+
 static inline matrix Arikan_kernel{binvector(2, 1), binvector(2, 3)};
 
 matrix __generate_Polar(int m, matrix const& Kernel) {

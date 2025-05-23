@@ -1,6 +1,10 @@
 #include "../include/binvector.h"
 
 namespace short_domain {
+	binvector get_empty(unsigned sz) {
+        return 0ull;
+    }
+
     bool getbit(binvector const& v, unsigned i) {
         return ((v >> i) & 1);
     }
@@ -56,6 +60,10 @@ namespace short_domain {
 }
 
 namespace long_domain {
+	binvector get_empty(unsigned sz) {
+        return binvector(sz);
+    }
+
     bool getbit(binvector const& v, unsigned i) {
         return v[i];
     }
