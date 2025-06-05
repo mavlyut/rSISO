@@ -127,6 +127,7 @@ namespace short_domain {
 
 	public:
 		binvector encode(binvector const&) override;
+		matrix generate_matrix() const override;
 		std::vector<double> decode_soft(std::vector<double> const&) override;
 		void printTree(std::string const& fileName) const;
 

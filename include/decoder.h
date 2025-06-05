@@ -25,7 +25,9 @@ namespace short_domain {
         virtual binvector decode(std::vector<double> const&);
         virtual std::vector<double> decode_soft(std::vector<double> const&);
 
-        virtual std::pair<double, double> simulate(_Float64 snr, unsigned iter_cnt, unsigned max_error);
+        std::pair<double, double> simulate(_Float64 snr, unsigned iter_cnt, unsigned max_error);
+
+        virtual matrix generate_matrix() const;
 
         unsigned length() const;
         unsigned dim() const;

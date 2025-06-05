@@ -3,7 +3,7 @@
 #include "../include/plotkin_construction_decoder.h"
 
 namespace short_domain {
-    plotkin_construction_decoder::plotkin_construction_decoder(short_domain::soft_decoder* dec1, short_domain::soft_decoder* dec2)
+    plotkin_construction_decoder::plotkin_construction_decoder(soft_decoder* dec1, short_domain::soft_decoder* dec2)
             : soft_decoder(dec1->length() * 2, dec1->dim() + dec2->dim()), m(dec1->length())
             , Lq0(m, 0), Lq1(m), Lq2(m), L_out(n), Lr0(m), Lr1(m), Lr2(m), L_ext_0(m), L_ext_2(m)
             , dec1(dec1), dec2(dec2) {
@@ -11,9 +11,15 @@ namespace short_domain {
         __log("Pt, created" << std::endl);
     }
 
-    short_domain::binvector plotkin_construction_decoder::encode(short_domain::binvector const& c) {
-        auto u1 = dec1->encode(short_domain::subvector(c, 0, dec1->dim()));
-        auto u2 = dec2->encode(short_domain::subvector(c, dec1->dim(), dec1->dim() + dec2->dim()));
+    binvector plotkin_construction_decoder::encode(binvector const& c) {
+        _log_bv("Pt, encode: ", k, c); __log(std::endl);
+        _log_bv("Pt, c1: ", dec1->dim(), subvector(c, 0, dec1->dim())); __log(std::endl);
+        _log_bv("Pt, c2: ", dec2->dim(), subvector(c, dec1->dim(), dec1->dim() + dec2->dim())); __log(std::endl);
+        auto u1 = dec1->encode(subvector(c, 0, dec1->dim()));
+        auto u2 = dec2->encode(subvector(c, dec1->dim(), dec1->dim() + dec2->dim()));
+        _log_bv("Pt, part1: ", m, u1); __log(std::endl);
+        _log_bv("Pt, part2: ", m, u2); __log(std::endl);
+        _log_bv("Pt, encoded: ", n, (((u1 ^ u2) << m) | u1)); __log(std::endl);
         return (((u1 ^ u2) << m) | u1);
     }
 
@@ -72,5 +78,18 @@ namespace short_domain {
             return log(2.0 / x);
         }
         return -log(tanh(x / 2.0));  
+    }
+
+	matrix plotkin_construction_decoder::generate_matrix() const {
+        matrix G1 = dec1->generate_matrix();
+        matrix G2 = dec2->generate_matrix();
+        matrix G;
+        for (auto& i : G1) {
+            G.push_back(i | (i << m));
+        }
+        for (auto& i : G2) {
+            G.push_back(i << m);
+        }
+        return G;
     }
 }

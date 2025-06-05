@@ -37,6 +37,7 @@ namespace short_domain {
     }
 
 	void _log_bv(std::string const& msg, unsigned n, binvector const& bv) {
+        fail((bv & ~((1ull << n) - 1)) == 0, "_log_bv: |" + std::to_string(bv) + "| > " + std::to_string(n));
         __log(msg);
         for (unsigned i = 0; i < n; ++i) {
             if (i != 0) {

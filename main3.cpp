@@ -23,14 +23,14 @@ using namespace short_domain;
 
 matrix generate_RM(unsigned r, unsigned m) {
     if (r == 0) {
-        matrix G(1, binvector(1ull << m));
+        matrix G(1, get_empty(1ull << m));
         for (unsigned i = 0; i < (1ull << m); i++) {
             setbit(G[0], i, true);
         }
         return G;
     }
     if (r == m) {
-        matrix G(1ull << m, binvector(1ull << m));
+        matrix G(1ull << m, get_empty(1ull << m));
         for (unsigned i = 0; i < (1ull << m); i++) {
             setbit(G[i], i, true);
         }
@@ -40,7 +40,7 @@ matrix generate_RM(unsigned r, unsigned m) {
     unsigned sh = (1ull << (m - 1));
     matrix G;
     for (unsigned i = 0; i < G1.size(); i++) {
-        binvector row(1ull << m);
+        binvector row = get_empty(1ull << m);
         for (unsigned j = 0; j < sh; j++) {
             setbit(row, j, getbit(G1[i], j));
             setbit(row, j + sh, getbit(G1[i], j));
@@ -48,7 +48,7 @@ matrix generate_RM(unsigned r, unsigned m) {
         G.push_back(row);
     }
     for (unsigned i = 0; i < G2.size(); i++) {
-        binvector row(1ull << m);
+        binvector row = get_empty(1ull << m);
         for (unsigned j = 0; j < sh; j++) {
             setbit(row, j + sh, getbit(G2[i], j));
         }

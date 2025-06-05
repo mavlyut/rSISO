@@ -10,6 +10,7 @@ namespace short_domain {
 
         binvector encode(binvector const& x) override;
         std::vector<double> decode_soft(std::vector<double> const&) override;
+		matrix generate_matrix() const override;
 
     private:
         static const unsigned MAX_ITER_COUNT;

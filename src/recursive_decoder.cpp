@@ -29,6 +29,10 @@ namespace short_domain {
 		return ans;
 	}
 
+	matrix recursive_decoder::generate_matrix() const {
+		return G_enc;
+	}
+
 	void recursive_decoder::sectionalization() {
 		__log("Sectionalization started, n=" << n << ", k=" << k << std::endl);
 		std::vector<std::vector<unsigned>> _Gp_size(n + 1, std::vector<unsigned>(n + 1, 0));

@@ -26,7 +26,7 @@ namespace short_domain {
 
     binvector soft_decoder::decode(std::vector<double> const& L_in) {
         std::vector<double> L_out = decode_soft(L_in);
-        binvector ans = 0;
+        binvector ans = get_empty(n);
         for (unsigned i = 0; i < n; ++i) {
             setbit(ans, i, L_out[i] < 0);
         }
@@ -38,11 +38,13 @@ namespace short_domain {
         std::normal_distribution<_Float64> norm(0.0, sigma);
         unsigned errr = 0, berr = 0, sim_cnt = 0;
         while (errr < max_error && sim_cnt < iter_cnt) {
-            binvector x = 0;
+            binvector x = get_empty(k);
             for (unsigned t = 0; t < dim(); ++t) {
                 setbit(x, t, rand() % 2);
             }
+            _log_bv("Simulate, x=", k, x); __log(" '" << x << "'" << std::endl);
             binvector enc = encode(x);
+            _log_bv("Simulate, enc=", n, enc); __log(std::endl);
             _Float64 coef = 2.0f / (sigma * sigma);
             std::vector<_Float64> L_in(length());
             for (unsigned t = 0; t < length(); ++t) {
@@ -54,6 +56,10 @@ namespace short_domain {
             ++sim_cnt;
         }
         return {(errr + 0.0) / sim_cnt, (berr + 0.0) / (sim_cnt * n)};
+    }
+
+    matrix soft_decoder::generate_matrix() const {
+        throw std::runtime_error("Method generate_matrix is not implemented");
     }
 
     unsigned soft_decoder::length() const {
@@ -80,7 +86,7 @@ namespace long_domain {
 
     binvector soft_decoder::decode(std::vector<double> const& L_in) {
         std::vector<double> L_out = decode_soft(L_in);
-        binvector ans = 0;
+        binvector ans = get_empty(n);
         for (unsigned i = 0; i < n; ++i) {
             setbit(ans, i, L_out[i] < 0);
         }
@@ -92,7 +98,7 @@ namespace long_domain {
         std::normal_distribution<_Float64> norm(0.0, sigma);
         unsigned errr = 0, berr = 0, sim_cnt = 0;
         while (errr < max_error && sim_cnt < iter_cnt) {
-            binvector x(dim());
+            binvector x = get_empty(k);
             for (unsigned t = 0; t < dim(); ++t) {
                 setbit(x, t, rand() % 2);
             }
