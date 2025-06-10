@@ -4,7 +4,7 @@
 #include "include/shuffle_decoder.h"
 #include "include/turbo_decoder.h"
 
-unsigned iter_cnt = 100000, max_error = 100;
+unsigned iter_cnt = 10'000, max_error = 100;
 
 using namespace short_domain;
 
@@ -105,88 +105,55 @@ int main() {
 
 	std::ofstream fout("output.txt");
 
-    fout << "FER,rSISO\tFER,Plotkin\n";
-    unsigned M = 5;
-    for (unsigned K = 1; K <= 32; ++K) {
-        fout << "\nK = " << K << std::endl;
-        unsigned n = (1ull << M), m = n / 2, k = K;
+    unsigned K = 50, M = 6;
+    unsigned n = (1ull << M), m = n / 2, k = K;
 
-        auto [G1, G2] = generate_polar_component(M, K, 0.5, Arikan_kernel);
+    auto [G1, G2] = generate_polar_component(M, K, 0.5, Arikan_kernel);
 
-        std::vector<unsigned> bit_revs00(n), bit_revs0 = get_bit_reversal_perm(M - 1), bit_revs = get_bit_reversal_perm(M);
-        std::vector<unsigned> swap_parts(n);
-        for (unsigned i = 0; i < m; ++i) {
-            swap_parts[i] = i + m;
-            swap_parts[i + m] = i;
-            bit_revs00[i] = bit_revs0[i];
-            bit_revs00[i + m] = bit_revs0[i] + m;
-        }
+    std::vector<unsigned> bit_revs00(n), bit_revs0 = get_bit_reversal_perm(M - 1), bit_revs = get_bit_reversal_perm(M);
+    std::vector<unsigned> swap_parts(n);
+    for (unsigned i = 0; i < m; ++i) {
+        swap_parts[i] = i + m;
+        swap_parts[i + m] = i;
+        bit_revs00[i] = bit_revs0[i];
+        bit_revs00[i + m] = bit_revs0[i] + m;
+    }
 
-        std::vector<unsigned> perm(n);
-        for (unsigned i = 0; i < n; ++i) {
-            perm[i] = bit_revs00[swap_parts[bit_revs[i]]];
-        }
-        // std::cout << perm << std::endl;
+    std::vector<unsigned> perm(n);
+    for (unsigned i = 0; i < n; ++i) {
+        perm[i] = bit_revs00[swap_parts[bit_revs[i]]];
+    }
 
-        shuffle_decoder perm_pt_coder(
+    turbo_decoder turbo(
+        new shuffle_decoder(
             perm,
             new plotkin_construction_decoder(
                 new recursive_decoder(m, G2),
                 new recursive_decoder(m, G1)
             )
-        );
-        recursive_decoder rSISO_coder(n, generate_polar(M, K, 0.5, Arikan_kernel));
+        ),
+        new recursive_decoder(
+            n,
+            generate_polar(M, K, 0.5, Arikan_kernel)
+        )
+    );
 
-        // printmatrix(std::cerr, "shuffle gen:", n, perm_pt_coder.generate_matrix()); std::cerr << "\n";
-        // printmatrix(std::cerr, "rSISO gen:", n, rSISO_coder.generate_matrix()); std::cerr << "\n";
-        // std::cerr << "real pt gen:\n";
-        // for (unsigned i = 0; i < k; ++i) {
-        //     printbv(std::cerr, n, perm_pt_coder.encode(1ull << i)); std::cerr << "\n";
-        // }
+    for (double snr = 3; snr <= 6.5; snr += 0.5) {
+        auto start = std::chrono::system_clock::now();
 
-        #ifdef DEBUG
-            double start_snr = 8;
-            double end_snr = 8;
+        auto [fer, ber] = turbo.simulate(snr, iter_cnt, max_error);
+
+        auto end = std::chrono::system_clock::now();
+        auto time_in_ms = std::chrono::duration_cast<ms>(end - start).count();
+
+        #ifdef TSV_FORMAT
+            fout << std::to_string(fer).replace(1, 1, ",");
+            std::cout << "snr = " << snr << "; time(turbo) = " << time_in_ms / 1000.0 << "s" << std::endl;
         #else
-            double start_snr = 0;
-            double end_snr = 5;
+            fout << "Snr = " << snr << "\n";
+            fout << "\tTurbo: FER = " << fer << "; BER = " << ber << "; time = " << time_in_ms / 1000.0 << "s\n";
         #endif
-
-        double metric = 0, denom = 0;
-        for (double snr = start_snr; snr <= end_snr; snr += 0.5) {
-            auto start = std::chrono::system_clock::now();
-
-            auto [fer_pt, ber_pt] = perm_pt_coder.simulate(snr, iter_cnt, max_error);
-
-            auto end = std::chrono::system_clock::now();
-            auto time_in_ms_pt = std::chrono::duration_cast<ms>(end - start).count();
-
-
-            start = std::chrono::system_clock::now();
-
-            auto [fer_rec, ber_rec] = rSISO_coder.simulate(snr, iter_cnt, max_error);
-
-            end = std::chrono::system_clock::now();
-            auto time_in_ms_rec = std::chrono::duration_cast<ms>(end - start).count();
-
-            #ifdef TSV_FORMAT
-                fout
-                    << std::to_string(fer_rec).replace(1, 1, ",") << "\t"
-                    << std::to_string(fer_pt).replace(1, 1, ",");
-                // std::cout << "snr = " << snr << "; time(plotkin) = " << time_in_ms_pt / 1000.0 << "s; time(rSISO) = " << time_in_ms_rec / 1000.0 << "s" << std::endl;
-            #else
-                fout << "Snr = " << snr << "\n";
-                fout << "\trSISO: FER = " << fer_rec << "; BER = " << ber_rec << "; time = " << time_in_ms_rec / 1000.0 << "s\n";
-                fout << "\tPt   : FER = " << fer_pt << "; BER = " << ber_pt << "; time = " << time_in_ms_pt / 1000.0 << "s\n";
-            #endif
-            fout << std::endl;
-
-            metric += fer_pt / fer_rec;
-            ++denom;
-        }
-
-        std::cout << "K=" << K << "; metric=" << metric / denom << std::endl;
-        fout << "metric=" << metric / denom << std::endl;
+        fout << std::endl;
     }
 
 	std::cout << "FINISH\n";

@@ -42,17 +42,19 @@ namespace short_domain {
             for (unsigned t = 0; t < dim(); ++t) {
                 setbit(x, t, rand() % 2);
             }
-            _log_bv("Simulate, x=", k, x); __log(" '" << x << "'" << std::endl);
             binvector enc = encode(x);
-            _log_bv("Simulate, enc=", n, enc); __log(std::endl);
             _Float64 coef = 2.0f / (sigma * sigma);
             std::vector<_Float64> L_in(length());
+            unsigned w = 0;
             for (unsigned t = 0; t < length(); ++t) {
                 L_in[t] = coef * ((getbit(enc, t) ? -1 : 1) + norm(gen));
+                w += ((L_in[t] < 0) != getbit(enc, t));
             }
+            __log("Simulate, errors cnt = " << w << std::endl);
             binvector dec = decode(L_in);
             errr += (dec != enc);
             berr += wt(dec ^ enc);
+            __log("Simulate, verdict = " << (dec == enc ? "OK" : "FAIL") << std::endl);
             ++sim_cnt;
         }
         return {(errr + 0.0) / sim_cnt, (berr + 0.0) / (sim_cnt * n)};

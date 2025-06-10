@@ -177,7 +177,6 @@ namespace short_domain {
 			if (optimizationNo == 0) {
 				fail(k1 == 0 && Gp.size() == y - x, "incorrect pre-conditions (0)");
 				__log("Leaf with full code: " << x << " " << y << std::endl);
-				std::cout << x << " " << y << " -> k1=" << k1 << ", Gp.size()=" << Gp.size() << std::endl;
 				return new leaf_full_code(x, y);
 			}
 

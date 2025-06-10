@@ -41,6 +41,8 @@ namespace short_domain {
         for (unsigned i = 0; i < m; ++i) {
             Lq0[i] = truncate(L0[i]);
             Lq1[i] = truncate(L0[i + m]);
+            // double ea = exp(L0[i]), eb = exp(L0[i + m]);
+            // Lq2[i] = truncate(log((ea * eb + 1) / (ea + eb)));
             Lq2[i] = 0.0;
             Lr0[i] = Lr1[i] = Lr2[i] = 0.0;
         }

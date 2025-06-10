@@ -27,7 +27,7 @@ namespace short_domain {
         _log_bv("Shuffle, encode: ", k, x); __log(std::endl);
         auto enc = inner_decoder->encode(x);
         for (unsigned i = 0; i < n; ++i) {
-            setbit(encoded_perm, perm[i], getbit(enc, i));
+            setbit(encoded_perm, i, getbit(enc, perm[i]));
         }
         _log_bv("Shuffle, enc, before perm: ", n, enc); __log(std::endl);
         _log_bv("Shuffle, encoded: ", n, encoded_perm); __log(std::endl);
