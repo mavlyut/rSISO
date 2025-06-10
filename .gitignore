@@ -51,3 +51,4 @@ check.cpp
 output (*).svg
 img/*
 .todo
+Viterbi.cpp
