@@ -513,14 +513,14 @@ namespace short_domain {
 			double Phi01B1 = Phi01 * B[1];
 			double Phi10B1 = Phi10 * B[1];
 			double Phi11B0 = Phi11 * B[0];
-			L[x]     = LLR(Phi00B0 + Phi01B1, Phi11B0 + Phi10B1);
+			L[x]	 = LLR(Phi00B0 + Phi01B1, Phi11B0 + Phi10B1);
 			L[x + 1] = LLR(Phi00B0 + Phi10B1, Phi11B0 + Phi01B1);
 		} else {
 			double Phi00B0 = Phi00 * B[0];
 			double Phi10B1 = Phi10 * B[1];
 			double Phi01B2 = Phi01 * B[2];
 			double Phi11B3 = Phi11 * B[3];
-			L[x]     = LLR(Phi00B0 + Phi01B2, Phi10B1 + Phi11B3);
+			L[x]	 = LLR(Phi00B0 + Phi01B2, Phi10B1 + Phi11B3);
 			L[x + 1] = LLR(Phi00B0 + Phi10B1, Phi01B2 + Phi11B3);
 		}
 	}

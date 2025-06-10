@@ -1,7 +1,7 @@
 #include "../include/matrix.h"
 
 namespace short_domain {
-    binvector multiply(binvector const& bv, matrix const& M) {
+	binvector multiply(binvector const& bv, matrix const& M) {
 		unsigned i = 0;
 		binvector ans = 0, tmp = bv;
 		while (tmp > 0) {
@@ -88,7 +88,7 @@ namespace short_domain {
 		return rg(n, M_ext) == M_ext.size();
 	}
 
-    std::ostream& printmatrix(std::ostream& out, std::string const& msg, unsigned n, matrix const& M) {
+	std::ostream& printmatrix(std::ostream& out, std::string const& msg, unsigned n, matrix const& M) {
 		out << msg << "\n";
 		for (binvector const& bv : M) {
 			printbv(out, n, bv);
@@ -97,11 +97,11 @@ namespace short_domain {
 		return out;
 	}
 
-    std::ostream& printmatrix(std::ostream& out, unsigned n, matrix const& M) {
+	std::ostream& printmatrix(std::ostream& out, unsigned n, matrix const& M) {
 		return printmatrix(out, "", n, M);
 	}
 
-    void _log_matrix(std::string const& msg, unsigned n, matrix const& M) {
+	void _log_matrix(std::string const& msg, unsigned n, matrix const& M) {
 		__log(msg << "\n");
 		for (binvector const& bv : M) {
 			_log_bv("", n, bv);
@@ -112,7 +112,7 @@ namespace short_domain {
 }
 
 namespace long_domain {
-    binvector multiply(binvector const& bv, matrix const& M) {
+	binvector multiply(binvector const& bv, matrix const& M) {
 		binvector ans(bv.size());
 		for (unsigned i = 0; i < bv.size(); ++i) {
 			if (bv[i]) {
@@ -197,7 +197,7 @@ namespace long_domain {
 		return rg(M_ext) == M_ext.size();
 	}
 
-    std::ostream& printmatrix(std::ostream& out, std::string const& msg, unsigned n, matrix const& M) {
+	std::ostream& printmatrix(std::ostream& out, std::string const& msg, unsigned n, matrix const& M) {
 		out << msg << "\n";
 		for (binvector const& bv : M) {
 			printbv(out, n, bv);
@@ -206,11 +206,11 @@ namespace long_domain {
 		return out;
 	}
 
-    std::ostream& printmatrix(std::ostream& out, unsigned n, matrix const& M) {
+	std::ostream& printmatrix(std::ostream& out, unsigned n, matrix const& M) {
 		return printmatrix(out, "", n, M);
 	}
 
-    void _log_matrix(std::string const& msg, unsigned n, matrix const& M) {
+	void _log_matrix(std::string const& msg, unsigned n, matrix const& M) {
 		__log(msg);
 		for (binvector const& bv : M) {
 			_log_bv("", n, bv);
