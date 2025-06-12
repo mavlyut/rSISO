@@ -5,3 +5,6 @@
 g++ -DLOG -DPRINT_SECTION_TREE $1 src/*.cpp -o sol.out
 ./sol.out
 rm sol.out
+if [[ -f "Sectionalization.dot" ]]; then
+    cat Sectionalization.dot | dot -Tsvg -o Sectionalization.svg
+fi

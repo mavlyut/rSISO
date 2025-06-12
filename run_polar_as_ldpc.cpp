@@ -181,7 +181,7 @@ int main() {
 			#endif
 			fout << std::endl;
 
-			metric += fer_pt / fer_rec;
+			metric += log(fer_pt / fer_rec);
 			++denom;
 		}
 

@@ -20,6 +20,10 @@ namespace short_domain {
 		sectionalization();
 		control;
 		root = rec_build_section_tree(0, n);
+
+		#ifdef PRINT_SECTION_TREE
+		printTree("Sectionalization.dot");
+		#endif
 	}
 
 	binvector recursive_decoder::encode(binvector const& c) {
@@ -341,7 +345,7 @@ namespace short_domain {
 	}
 
 	void recursive_decoder::node::print(std::ostream& out) const {
-		out << "\t" << getName() << " [label=\"[" << x << ";" << y << ")\"]\n";
+		out << "\t" << getName() << " [label=\"[" << x << ";" << y << ")\n" << typeid(*this).name() << "\"]\n";
 		__print(out);
 	}
 
@@ -377,6 +381,7 @@ namespace short_domain {
 	recursive_decoder::leaf_full_code::leaf_full_code(unsigned x, unsigned y) : leaf(x, y, 0, get_e(y - x)), L_ans(y - x) {}
 
 	void recursive_decoder::leaf_full_code::upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) {
+		B[0] = I;
 		for (unsigned i = x, j = 0; i < y; ++i, ++j) {
 			L_ans[j] = LLR(p0[i], p1[i]);
 		}
@@ -445,6 +450,7 @@ namespace short_domain {
 	}
 
 	void recursive_decoder::leaf_simplify_1::upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) {
+		B[0] = I;
 		ext_l = I;
 		for (unsigned i = x; i < y; ++i) {
 			ext_l += LLR(p0[i], p1[i]);
@@ -466,6 +472,7 @@ namespace short_domain {
 	}
 
 	void recursive_decoder::leaf_simplify_2::upward_pass(std::vector<double> const& p0, std::vector<double> const& p1) {
+		B[0] = B[1] = I;
 		A[0] = A[1] = 1.0;
 		for (unsigned i = x; i < y; ++i) {
 			A[0] *= p0[i];
@@ -551,6 +558,7 @@ namespace short_domain {
 				changebit(v, ind);
 			}
 			A[v] = T;
+			B[v] = I;
 		}
 	}
 
